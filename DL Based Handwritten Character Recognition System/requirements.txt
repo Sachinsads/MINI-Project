@@ -1,0 +1,36 @@
+# NEUROSCRIPT — Deep Learning Handwritten Character Recognition System
+# Requirements (Python 3.9+)
+
+# ── Core ML & Transformers ──────────────────────────────────────────────────
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.35.0
+sentencepiece>=0.1.99
+accelerate>=0.24.0
+tokenizers>=0.13.0
+safetensors>=0.3.0
+huggingface_hub>=0.19.0
+
+# ── Image Processing ────────────────────────────────────────────────────────
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# ── Web Framework ───────────────────────────────────────────────────────────
+Flask>=3.0.0
+flask-cors>=4.0.0
+Werkzeug>=3.0.0
+
+# ── NLP Correction (optional — app works without these) ─────────────────────
+pyspellchecker>=0.7.3
+# language-tool-python>=2.7.1   # Requires Java — comment out if not needed
+# indic-nlp-library>=0.92       # For Hindi/Tamil normalisation
+
+# ── Tamil OCR Engine ─────────────────────────────────────────────────────────
+# Primary: sabaridsnfuji/Tamil_Offline_Handwritten_OCR (auto-downloaded via HuggingFace)
+# Fallback: EasyOCR + optional Tesseract
+# pytesseract>=0.3.10           # Optional — requires Tesseract binary + Tamil lang pack
+
+# ── Utilities ───────────────────────────────────────────────────────────────
+requests>=2.31.0
+tqdm>=4.66.0

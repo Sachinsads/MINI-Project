@@ -1,0 +1,2978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NEUROSCRIPT — Multilingual Handwritten Text Recognition Engine</title>
+  <meta name="description" content="NEUROSCRIPT: Enterprise deep learning OCR system for English, Hindi, and Tamil handwriting recognition." />
+  <meta name="keywords" content="NEUROSCRIPT, handwritten OCR, Tamil OCR, Hindi OCR, English OCR, TrOCR, deep learning" />
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='assets/logo.png') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --font: 'Times New Roman', Times, serif;
+      --bg: #ffffff;
+      --bg-alt: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      --text-sub: #64748b;
+      --primary: #09090b;
+      --primary-hover: #18181b;
+      --accent: #1e3a8a;
+      --radius: 12px;
+      --radius-lg: 18px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --shadow-md: 0 6px 20px rgba(0,0,0,0.07);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-top: 72px; /* space for fixed top navbar */
+    }
+
+    /* ── Top Navigation Bar ───────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 2.5rem;
+      background: rgba(255, 255, 255, 0.98);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 1.3rem; font-weight: bold; letter-spacing: -0.01em;
+      color: var(--text-main); text-decoration: none; font-family: var(--font);
+      cursor: pointer;
+    }
+    .nav-badge {
+      font-size: 0.72rem; font-weight: normal; font-family: var(--font);
+      background: #f1f5f9; color: #334155; padding: 0.2rem 0.6rem;
+      border-radius: 999px; border: 1px solid #e2e8f0;
+    }
+    .nav-links { display: flex; gap: 1rem; list-style: none; align-items: center; }
+    .nav-links a {
+      color: var(--text-muted); text-decoration: none;
+      font-size: 0.98rem; font-family: var(--font); font-weight: 500;
+      padding: 0.45rem 0.85rem; border-radius: 10px; cursor: pointer;
+      display: inline-block; border: 1px solid transparent;
+      transition: all 0.22s ease-in-out;
+    }
+    .nav-links a:hover, .nav-links a.active-link {
+      color: #ffffff !important; font-weight: bold;
+      background: #0f172a !important;
+      border-color: #1e293b !important;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28) !important;
+    }
+    .nav-cta {
+      background: var(--primary) !important; color: #ffffff !important;
+      padding: 0.5rem 1.2rem !important; border-radius: 12px !important;
+      font-weight: bold !important; font-size: 0.95rem !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 1px solid transparent !important;
+    }
+
+    /* ── MAGNIFYING & HIGHLIGHT HOVER EFFECTS ─────────────────────── */
+    .nav-brand, .nav-links a, .nav-cta, .btn-p, .btn-o, .lang-btn, .action-btn, #recognize-btn, .hero-eyebrow, .tab-btn {
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease !important;
+      will-change: transform;
+    }
+
+    .nav-brand:hover {
+      transform: scale(1.06) !important;
+    }
+
+    .nav-cta:hover, .btn-p:hover, #recognize-btn:hover:not(:disabled) {
+      background: #000000 !important;
+      color: #ffffff !important;
+      border-color: #38bdf8 !important;
+      transform: scale(1.08) !important;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.35), 0 0 15px rgba(56, 189, 248, 0.25) !important;
+    }
+
+    .btn-o:hover, .action-btn:hover, .hero-eyebrow:hover {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      border-color: #0f172a !important;
+      transform: scale(1.08) !important;
+      box-shadow: 0 8px 25px rgba(15, 23, 42, 0.25) !important;
+    }
+
+    .lang-btn:hover:not(.active), .tab-btn:hover:not(.active) {
+      background: #f1f5f9 !important;
+      border-color: #0f172a !important;
+      color: #0f172a !important;
+      transform: scale(1.06) !important;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12) !important;
+    }
+
+    /* ── SINGLE-PAGE VIEW SECTION CONTROLLER (No Scroll Pages) ───── */
+    .view-section {
+      display: none !important;
+      padding: 3rem 2rem 5rem;
+    }
+    .view-section.active-view {
+      display: block !important;
+    }
+
+    /* ── CURVY BORDERS FOR ALL SECTIONS & CARDS ─────────────────── */
+    .gc, .arch-step, .m-card, .f-card, .rec-sec, .prev-c {
+      border-radius: var(--radius-lg) !important;
+    }
+    .up-area, .text-output, .line-block {
+      border-radius: 14px !important;
+    }
+    .btn-p, .btn-o, .action-btn, #recognize-btn, .nav-cta, .lang-btn, .tab-btn {
+      border-radius: 12px !important;
+    }
+
+    /* ── Section Headers ──────────────────────────────────────────── */
+    .sec-hdr { text-align: center; margin-bottom: 3rem; }
+    .sec-lbl {
+      display: inline-block; font-size: 0.82rem; font-family: var(--font);
+      text-transform: uppercase; color: #475569; background: #f1f5f9;
+      padding: 0.25rem 0.85rem; border-radius: 999px; margin-bottom: 0.85rem;
+      border: 1px solid #e2e8f0;
+    }
+    .sec-title {
+      font-size: 2.3rem; font-weight: bold; font-family: var(--font);
+      color: var(--text-main); margin-bottom: 0.5rem;
+    }
+    .sec-sub {
+      font-size: 1.1rem; color: var(--text-sub); max-width: 620px; margin: 0 auto;
+      font-family: var(--font); font-style: italic;
+    }
+
+    /* ── Hero Section Page ────────────────────────────────────────── */
+    #home.view-section {
+      display: none !important;
+    }
+    #home.view-section.active-view {
+      min-height: calc(85vh - 72px);
+      display: flex !important; flex-direction: column !important;
+      align-items: center !important; justify-content: center !important;
+      text-align: center !important; background: var(--bg-alt);
+      padding: 3rem 1.5rem !important; margin: 0 auto !important; width: 100% !important;
+    }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      font-size: 0.92rem; color: #334155; background: #ffffff;
+      padding: 0.45rem 1.25rem; border-radius: 999px; border: 1px solid var(--border);
+      box-shadow: var(--shadow); margin: 0 auto 2.2rem; font-family: var(--font);
+      cursor: pointer; text-align: center;
+    }
+    .pdot { width: 8px; height: 8px; background: #16a34a; border-radius: 50%; }
+    
+    /* Prominent Project Name */
+    .hero-title {
+      font-size: clamp(3.8rem, 8.5vw, 6.5rem); font-weight: bold;
+      letter-spacing: 0.05em; line-height: 1.1; color: var(--text-main);
+      width: 100%; max-width: 1000px; margin: 0 auto 2.5rem; font-family: var(--font);
+      text-align: center !important;
+    }
+    .hero-cta {
+      display: flex; gap: 1.25rem; justify-content: center; align-items: center;
+      flex-wrap: wrap; margin: 0 auto; width: 100%; text-align: center;
+    }
+    .btn-p {
+      padding: 0.85rem 2rem; background: var(--primary);
+      border: 1px solid var(--primary); color: #ffffff; font-size: 1.05rem;
+      font-weight: bold; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--font);
+      box-shadow: var(--shadow);
+    }
+    .btn-o {
+      padding: 0.85rem 2rem; background: #ffffff;
+      border: 1px solid var(--border-dark); color: var(--text-main);
+      font-size: 1.05rem; font-weight: bold; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center;
+      gap: 0.5rem; font-family: var(--font); box-shadow: var(--shadow);
+    }
+
+    /* ── Recognition Studio Workspace Page ────────────────────────── */
+    #recognition-studio { max-width: 1350px; margin: 0 auto; background: var(--bg); }
+    .workspace {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+      align-items: start;
+    }
+    @media (max-width: 980px) { .workspace { grid-template-columns: 1fr; } }
+
+    .gc {
+      background: var(--bg-card); border: 1px solid var(--border);
+      padding: 2rem; box-shadow: var(--shadow-md);
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border);
+    }
+    .card-title { font-size: 1.2rem; font-weight: bold; color: var(--text-main); font-family: var(--font); }
+    .card-sub { font-size: 0.88rem; color: var(--text-sub); font-family: var(--font); }
+
+    /* Input Mode Tabs */
+    .input-mode-tabs {
+      display: flex; gap: 0.5rem; margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;
+    }
+    .mode-tab {
+      flex: 1; padding: 0.6rem 0.8rem; background: #ffffff;
+      border: 1px solid var(--border-dark); color: var(--text-muted);
+      cursor: pointer; text-align: center; font-family: var(--font);
+      font-size: 0.95rem; font-weight: bold; border-radius: 10px !important;
+      transition: all 0.2s ease;
+    }
+    .mode-tab:hover { background: #f8fafc; color: var(--text-main); }
+    .mode-tab.active {
+      background: #0f172a !important; border-color: #0f172a !important; color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(15,23,42,0.2) !important;
+    }
+
+    /* Sketch Pad */
+    .sketch-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.8rem; padding: 0.75rem 1rem;
+      background: #f8fafc; border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 0.85rem;
+    }
+    .color-swatches { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+    .c-dot {
+      width: 24px; height: 24px; border-radius: 50%; cursor: pointer;
+      border: 2px solid #ffffff; box-shadow: 0 0 0 1px #cbd5e1;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .c-dot:hover, .c-dot.active {
+      transform: scale(1.28) !important; box-shadow: 0 0 0 2px #0f172a !important;
+    }
+    .size-picker { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; font-family: var(--font); color: var(--text-muted); }
+    .size-picker input { cursor: pointer; width: 85px; }
+    .size-badge { font-weight: bold; min-width: 34px; color: var(--text-main); font-family: var(--font); }
+
+    .sketch-canvas-wrap {
+      position: relative; border: 2px dashed var(--border-dark);
+      border-radius: 14px; overflow: hidden; background: #ffffff;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.03); cursor: crosshair;
+    }
+    #sketch-canvas { width: 100%; height: 230px; display: block; touch-action: none; }
+
+    /* Live Tracing Mechanism */
+    .live-tracing-box {
+      margin-top: 1rem; padding: 1rem 1.15rem; background: #0f172a; color: #f8fafc;
+      border-radius: 14px; box-shadow: var(--shadow-md); font-family: var(--font);
+    }
+    .tracing-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 0.85rem; font-weight: bold; letter-spacing: 0.03em;
+      padding-bottom: 0.6rem; border-bottom: 1px solid #334155; margin-bottom: 0.85rem;
+    }
+    .tracing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; align-items: center; }
+    @media (max-width: 580px) { .tracing-grid { grid-template-columns: 1fr; } }
+
+    .trace-canvas-wrap {
+      background: #020617; border: 1px solid #334155; border-radius: 10px;
+      overflow: hidden; display: flex; align-items: center; justify-content: center;
+    }
+    #trace-canvas { width: 100%; height: 110px; display: block; }
+
+    .trace-metrics { font-size: 0.85rem; line-height: 1.6; color: #94a3b8; font-family: var(--font); }
+    .trace-metrics strong { color: #38bdf8; font-family: var(--font); }
+    .metric-row { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #1e293b; }
+
+    /* Drop Zone / Upload Area */
+    .up-area {
+      display: block; border: 2px dashed var(--border-dark);
+      padding: 2.8rem 1.5rem; text-align: center; cursor: pointer;
+      background: #f8fafc; font-family: var(--font);
+    }
+    .up-area:hover, .up-area.drag-over {
+      border-color: var(--text-main); background: #f1f5f9;
+    }
+    .up-icon { font-size: 2.6rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .up-area h3 { font-size: 1.1rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.3rem; font-family: var(--font); }
+    .up-area p { font-size: 0.92rem; color: var(--text-sub); font-family: var(--font); }
+    .ul { color: var(--accent); font-weight: bold; text-decoration: underline; }
+
+    #file-input { display: none; }
+
+    /* Image Preview Container */
+    .prev-c {
+      display: none; position: relative; overflow: hidden;
+      border: 1px solid var(--border); margin-top: 1rem; background: #f8fafc;
+    }
+    .prev-c img { width: 100%; display: block; max-height: 280px; object-fit: contain; }
+    .prev-ov { position: absolute; top: 0.5rem; right: 0.5rem; }
+    .ibtn {
+      background: rgba(15, 23, 42, 0.85); border: none; color: #ffffff;
+      border-radius: 50%; width: 30px; height: 30px; cursor: pointer;
+      font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
+    }
+    .ibtn:hover { background: #ef4444; }
+
+    /* Language Selection Buttons */
+    .lang-sel { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+    .lang-btn {
+      flex: 1; padding: 0.7rem 0.6rem; background: #ffffff;
+      border: 1px solid var(--border-dark); color: var(--text-muted);
+      cursor: pointer; text-align: center; font-family: var(--font);
+    }
+    .lang-btn:hover { border-color: var(--text-main); color: var(--text-main); }
+    .lang-btn.active {
+      background: var(--primary); border-color: var(--primary);
+      color: #ffffff; font-weight: bold;
+    }
+    .ln { display: block; font-weight: bold; font-size: 0.98rem; font-family: var(--font); }
+    .lm { display: block; font-size: 0.76rem; opacity: 0.85; margin-top: 0.1rem; font-family: var(--font); }
+
+    /* Options & Toggle */
+    .opt-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.75rem 0; font-size: 0.95rem; color: var(--text-muted); font-family: var(--font);
+    }
+    .tog { position: relative; display: inline-block; width: 42px; height: 24px; }
+    .tog input { opacity: 0; width: 0; height: 0; }
+    .tog-sl {
+      position: absolute; inset: 0; cursor: pointer; background: #cbd5e1;
+      border-radius: 24px;
+    }
+    .tog-sl::before {
+      content: ''; position: absolute; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background: #ffffff; border-radius: 50%;
+    }
+    .tog input:checked + .tog-sl { background: var(--primary); }
+    .tog input:checked + .tog-sl::before { transform: translateX(18px); }
+
+    /* Error Banner */
+    .err-ban {
+      display: none; background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 12px; padding: 0.75rem 1rem;
+      font-size: 0.9rem; color: #991b1b; margin-top: 0.8rem; font-family: var(--font);
+    }
+    .err-ban.visible { display: flex; }
+
+    /* Primary Action Button */
+    #recognize-btn {
+      width: 100%; margin-top: 1.25rem; padding: 0.95rem 1.5rem;
+      background: var(--primary); border: 1px solid var(--primary);
+      color: #ffffff; font-size: 1.1rem; font-weight: bold;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 0.5rem; font-family: var(--font);
+      box-shadow: var(--shadow);
+    }
+    #recognize-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+
+    /* Progress Steps */
+    .progress-steps { margin-top: 1rem; display: none; font-family: var(--font); }
+    .step {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0;
+      font-size: 0.9rem; color: var(--text-sub); opacity: 0.5; font-family: var(--font);
+    }
+    .step.active { opacity: 1; color: var(--text-main); font-weight: bold; }
+    .step.done { opacity: 0.85; color: #16a34a; }
+
+    /* ── TWO DISTINCT RECOGNITION SECTIONS STYLING ─────────────────── */
+    .result-placeholder {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 280px; gap: 0.8rem; text-align: center;
+      color: var(--text-sub); border: 1px dashed var(--border); border-radius: 16px;
+      background: #f8fafc; padding: 2rem; font-family: var(--font);
+    }
+    .placeholder-icon { font-size: 2.6rem; color: #cbd5e1; }
+    .result-content { display: none; }
+    .result-content.visible { display: block; }
+    .hidden { display: none !important; }
+
+    /* Section Output Box */
+    .rec-sec {
+      background: #ffffff; border: 1px solid var(--border);
+      padding: 1.35rem; margin-bottom: 1.5rem; box-shadow: var(--shadow);
+    }
+    .rec-sec-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem; padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
+    }
+    .rec-sec-title {
+      font-size: 1.1rem; font-weight: bold; color: var(--text-main); font-family: var(--font);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .acc-badge {
+      font-size: 0.85rem; font-weight: bold; font-family: var(--font);
+      padding: 0.3rem 0.75rem; border-radius: 999px; border: 1px solid;
+    }
+    .acc-raw { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .acc-nlp { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+
+    /* Line-by-Line Structured Block Format */
+    .line-container { display: flex; flex-direction: column; gap: 0.6rem; }
+    .line-block {
+      display: flex; align-items: flex-start; gap: 0.8rem;
+      padding: 0.65rem 0.9rem; background: #f8fafc; border: 1px solid #e2e8f0;
+      font-family: var(--font); font-size: 1rem;
+    }
+    .line-badge {
+      font-size: 0.8rem; font-weight: bold; font-family: var(--font);
+      color: #475569; background: #e2e8f0; padding: 0.18rem 0.5rem;
+      border-radius: 6px; flex-shrink: 0; margin-top: 0.15rem;
+    }
+    .line-text {
+      font-family: var(--font); font-size: 1.08rem; color: var(--text-main);
+      line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+    }
+    mark.highlight-search {
+      background: #fef08a !important;
+      color: #854d0e !important;
+      font-weight: bold;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      box-shadow: 0 0 0 1px #fde047;
+    }
+
+    /* Tabs & Output Extras */
+    .result-tabs {
+      display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border);
+      padding-bottom: 0.6rem; margin-bottom: 1rem;
+    }
+    .tab-btn {
+      padding: 0.5rem 1.1rem; background: transparent; border: 1px solid transparent;
+      color: var(--text-muted); font-size: 0.92rem; font-family: var(--font); cursor: pointer;
+    }
+    .tab-btn:hover { color: var(--text-main); background: #f1f5f9; }
+    .tab-btn.active { background: #f1f5f9; border-color: var(--border-dark); color: var(--text-main); font-weight: bold; }
+
+    .stats-row {
+      display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 1rem;
+      padding-top: 0.9rem; border-top: 1px solid var(--border);
+    }
+    .stat-chip {
+      background: #f1f5f9; border: 1px solid var(--border); border-radius: 8px;
+      padding: 0.4rem 0.8rem; font-size: 0.85rem; color: var(--text-muted); font-family: var(--font);
+    }
+    .action-bar { display: flex; gap: 0.8rem; margin-top: 1.25rem; }
+    .action-btn {
+      padding: 0.6rem 1.3rem; background: #ffffff; border: 1px solid var(--border-dark);
+      color: var(--text-main); font-size: 0.95rem; font-weight: bold;
+      cursor: pointer; font-family: var(--font); box-shadow: var(--shadow);
+    }
+
+    /* ── Architecture Pipeline Grid Page ──────────────────────────── */
+    #architecture { background: var(--bg-alt); }
+    .arch-pipe {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1.25rem; max-width: 1200px; margin: 0 auto;
+    }
+    .arch-step {
+      background: #ffffff; border: 1px solid var(--border);
+      padding: 1.8rem 1.25rem; box-shadow: var(--shadow); font-family: var(--font);
+    }
+    .arch-num { font-size: 0.82rem; font-weight: bold; color: var(--text-sub); margin-bottom: 0.75rem; font-family: var(--font); }
+    .arch-ico { font-size: 2rem; margin-bottom: 0.6rem; color: var(--text-main); }
+    .arch-ttl { font-size: 1.1rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.4rem; font-family: var(--font); }
+    .arch-dsc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; font-family: var(--font); }
+    .arch-tg {
+      display: inline-block; margin-top: 0.8rem; padding: 0.2rem 0.55rem;
+      background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 6px;
+      font-size: 0.78rem; font-weight: bold; color: #334155; font-family: var(--font);
+    }
+
+    /* Hero Subtext */
+    .hero-subtext {
+      font-size: 1.15rem; color: var(--text-muted); max-width: 680px;
+      margin: 0.8rem auto 1.8rem; line-height: 1.6; font-weight: 500; text-align: center;
+      font-family: var(--font);
+    }
+
+    /* ── Models Grid Page ─────────────────────────────────────────── */
+    #models { background: var(--bg); }
+    .models-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem; max-width: 1150px; margin: 0 auto;
+    }
+    .m-card {
+      background: #ffffff; border: 1px solid var(--border);
+      padding: 2rem; box-shadow: var(--shadow); font-family: var(--font);
+      cursor: pointer; position: relative;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+    .m-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: #0f172a;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+    }
+    .m-card.active-mcard {
+      border-color: #1e3a8a !important;
+      background: #f8fafc !important;
+      box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.2), 0 10px 24px rgba(15, 23, 42, 0.15) !important;
+    }
+    .m-lang { font-size: 2rem; margin-bottom: 0.6rem; }
+    .m-ttl { font-size: 1.2rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.25rem; font-family: var(--font); }
+    .m-name { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 0.8rem; font-family: var(--font); font-style: italic; }
+    .m-dsc { font-size: 0.92rem; color: var(--text-muted); line-height: 1.55; font-family: var(--font); }
+    .m-badge {
+      display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 1rem;
+      padding: 0.3rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: bold;
+      background: #f1f5f9; border: 1px solid #cbd5e1; color: var(--text-main); font-family: var(--font);
+    }
+    .m-explore-hint {
+      margin-top: 0.85rem; font-size: 0.82rem; font-weight: bold; color: #1e3a8a;
+      display: flex; align-items: center; gap: 0.3rem; font-family: var(--font);
+      transition: color 0.2s ease;
+    }
+    .m-card:hover .m-explore-hint { color: #0f172a; text-decoration: underline; }
+
+    /* ── Model Interactive Pipeline Explorer ───────────────────────── */
+    .model-expl-panel {
+      display: none; max-width: 1150px; margin: 2.2rem auto 0;
+      background: #ffffff; border: 2px solid #0f172a; border-radius: 18px;
+      padding: 2.2rem; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+      animation: mepSlideDown 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .model-expl-panel.open { display: block; }
+    @keyframes mepSlideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .me-hdr-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem; padding-bottom: 1.2rem; border-bottom: 1px solid #e2e8f0;
+      flex-wrap: wrap; margin-bottom: 1.2rem;
+    }
+    .me-hdr-info { display: flex; align-items: center; gap: 1rem; }
+    .me-icon {
+      font-size: 2.4rem; background: #f1f5f9; padding: 0.5rem 0.8rem;
+      border-radius: 14px; border: 1px solid #cbd5e1; display: flex; align-items: center; justify-content: center;
+    }
+    .me-title-box h3 {
+      font-size: 1.45rem; font-weight: bold; color: #0f172a; font-family: var(--font); margin-bottom: 0.2rem;
+    }
+    .me-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .me-badge {
+      font-size: 0.78rem; font-weight: bold; background: #0f172a; color: #ffffff;
+      padding: 0.25rem 0.75rem; border-radius: 999px; font-family: var(--font);
+    }
+    .me-badge-alt {
+      font-size: 0.78rem; font-weight: bold; background: #f1f5f9; color: #334155;
+      padding: 0.25rem 0.75rem; border-radius: 999px; border: 1px solid #cbd5e1; font-family: var(--font);
+    }
+    .me-hdr-actions { display: flex; align-items: center; gap: 0.8rem; }
+    .me-run-btn {
+      background: #1e3a8a; color: #ffffff; border: none; padding: 0.65rem 1.25rem;
+      border-radius: 12px; font-weight: bold; font-size: 0.9rem; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font);
+      box-shadow: 0 4px 14px rgba(30, 58, 138, 0.25); transition: all 0.25s ease;
+    }
+    .me-run-btn:hover { background: #0f172a; transform: translateY(-2px); }
+    .me-run-btn.running { background: #166534; pointer-events: none; }
+    .me-close-btn {
+      background: #f1f5f9; border: 1px solid #cbd5e1; width: 38px; height: 38px;
+      border-radius: 50%; font-size: 1.4rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; color: #475569; transition: all 0.2s ease;
+    }
+    .me-close-btn:hover { background: #ef4444; color: #ffffff; border-color: #dc2626; }
+    
+    .me-progress-bar {
+      height: 4px; background: #e2e8f0; border-radius: 999px; margin-bottom: 1.5rem; overflow: hidden;
+    }
+    .me-progress-fill {
+      height: 100%; width: 25%; background: linear-gradient(90deg, #1e3a8a, #3b82f6, #06b6d4);
+      transition: width 0.5s ease; border-radius: 999px;
+    }
+
+    /* 4-Stage Visual Pipeline Nodes */
+    .me-pipeline {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.5rem; margin-bottom: 2rem; overflow-x: auto; padding: 0.5rem 0;
+    }
+    .me-node {
+      flex: 1; min-width: 180px; background: #ffffff; border: 2px solid #e2e8f0;
+      border-radius: 14px; padding: 1rem 1.1rem; cursor: pointer; position: relative;
+      transition: all 0.25s ease; text-align: left;
+    }
+    .me-node:hover { border-color: #0f172a; transform: translateY(-3px); }
+    .me-node.active {
+      border-color: #1e3a8a !important; background: #f8fafc !important;
+      box-shadow: 0 8px 24px rgba(30, 58, 138, 0.15) !important;
+    }
+    .me-step-tag {
+      font-size: 0.72rem; font-weight: bold; background: #e2e8f0; color: #334155;
+      padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-block; margin-bottom: 0.4rem;
+      font-family: var(--font);
+    }
+    .me-node.active .me-step-tag { background: #1e3a8a; color: #ffffff; }
+    .me-node-title { font-size: 0.98rem; font-weight: bold; color: #0f172a; font-family: var(--font); margin-bottom: 0.2rem; }
+    .me-node-sub { font-size: 0.78rem; color: #64748b; font-family: var(--font); }
+
+    .me-conn { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; position: relative; }
+    .me-conn-line { width: 24px; height: 2px; background: #cbd5e1; position: relative; }
+    .me-conn-line::after { content: '▶'; position: absolute; right: -7px; top: -7px; font-size: 0.65rem; color: #cbd5e1; }
+    .me-conn-line.lit { background: #1e3a8a; }
+    .me-conn-line.lit::after { color: #1e3a8a; }
+
+    /* Detail Card */
+    .me-detail-card {
+      background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 14px;
+      padding: 1.8rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .me-detail-hdr {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.2rem;
+      padding-bottom: 0.9rem; border-bottom: 1px solid #e2e8f0;
+    }
+    .me-detail-icon { font-size: 2rem; background: #ffffff; padding: 0.4rem 0.7rem; border-radius: 10px; border: 1px solid #cbd5e1; }
+    .me-detail-meta { flex: 1; }
+    .me-detail-stage { font-size: 0.76rem; font-weight: bold; color: #64748b; text-transform: uppercase; font-family: var(--font); }
+    .me-detail-name { font-size: 1.3rem; font-weight: bold; color: #0f172a; font-family: var(--font); }
+    .me-detail-badge { font-size: 0.78rem; font-weight: bold; background: #1e3a8a; color: #ffffff; padding: 0.3rem 0.8rem; border-radius: 999px; font-family: var(--font); }
+
+    .me-detail-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem; margin-bottom: 1.5rem;
+    }
+    .me-col h4 { font-size: 0.78rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.07em; color: #64748b; margin-bottom: 0.45rem; font-family: var(--font); }
+    .me-col p { font-size: 0.92rem; color: #334155; line-height: 1.6; font-family: var(--font); }
+    .me-tech-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.3rem; }
+    .me-tag { padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.76rem; font-weight: bold; background: #ffffff; border: 1px solid #cbd5e1; color: #0f172a; font-family: var(--font); }
+
+    /* Data Transform Box */
+    .me-transform {
+      background: #0f172a; border-radius: 12px; padding: 1.1rem 1.4rem;
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+    }
+    .me-tf-box { flex: 1; min-width: 160px; }
+    .me-tf-lbl { font-size: 0.72rem; font-weight: bold; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 0.35rem; font-family: var(--font); }
+    .me-tf-val { font-size: 0.88rem; color: #38bdf8; font-family: 'Courier New', monospace; background: #1e293b; border-radius: 8px; padding: 0.55rem 0.8rem; line-height: 1.5; border: 1px solid #334155; white-space: pre-line; }
+    .me-tf-arrow { font-size: 1.5rem; color: #38bdf8; flex-shrink: 0; align-self: center; }
+
+    .me-footer-actions { display: flex; justify-content: flex-end; gap: 1rem; }
+
+    /* ── Features Grid Page ───────────────────────────────────────── */
+    #features { background: var(--bg-alt); }
+    .feat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem; max-width: 1150px; margin: 0 auto;
+    }
+    .f-card {
+      background: #ffffff; border: 1px solid var(--border);
+      padding: 1.8rem; box-shadow: var(--shadow); font-family: var(--font);
+    }
+    .f-ico { font-size: 2rem; margin-bottom: 0.75rem; color: var(--text-main); }
+    .f-ttl { font-size: 1.1rem; font-weight: bold; color: var(--text-main); margin-bottom: 0.4rem; font-family: var(--font); }
+    .f-dsc { font-size: 0.92rem; color: var(--text-muted); line-height: 1.55; font-family: var(--font); }
+
+    /* ── About Section Page ───────────────────────────────────────── */
+    #about { background: var(--bg); }
+    .about-c {
+      font-size: 1.1rem; color: var(--text-muted); max-width: 780px;
+      margin: 0 auto 3rem; text-align: center; line-height: 1.85; font-family: var(--font);
+    }
+    .stats { display: flex; justify-content: center; gap: 4rem; flex-wrap: wrap; }
+    .stat-i { text-align: center; }
+    .stat-n { font-size: 3.2rem; font-weight: bold; color: var(--text-main); line-height: 1; font-family: var(--font); }
+    .stat-l { font-size: 0.85rem; font-weight: bold; color: var(--text-sub); text-transform: uppercase; margin-top: 0.4rem; font-family: var(--font); }
+
+    /* ── Footer ───────────────────────────────────────────────────── */
+    footer {
+      background: #0f172a; color: #94a3b8; padding: 4rem 2rem 3rem;
+      border-top: 1px solid #1e293b; font-size: 0.9rem; font-family: var(--font);
+    }
+    .ft-c { max-width: 1150px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.5rem; }
+    .ft-brand { font-size: 1.5rem; font-weight: bold; color: #ffffff; font-family: var(--font); cursor: pointer; }
+    .ft-links { display: flex; gap: 1.8rem; flex-wrap: wrap; justify-content: center; list-style: none; }
+    .ft-links a { color: #94a3b8; text-decoration: none; font-family: var(--font); cursor: pointer; }
+    .ft-links a:hover { color: #ffffff; }
+    .ft-copy { font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; font-family: var(--font); }
+
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; background: #0f172a;
+      border: 1px solid #334155; border-radius: 12px; padding: 0.85rem 1.5rem;
+      color: #ffffff; font-size: 0.95rem; font-weight: bold; z-index: 9999;
+      opacity: 0; font-family: var(--font); box-shadow: var(--shadow-md);
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- TOP NAVIGATION BAR -->
+  <nav>
+    <a data-view="home" class="nav-brand">
+      NEUROSCRIPT <span class="nav-badge">Deep Learning Engine v2.4</span>
+    </a>
+    <ul class="nav-links">
+      <li><a data-view="home" class="active-link">Home</a></li>
+      <li><a data-view="recognition-studio">Recognition Studio</a></li>
+      <li><a data-view="architecture">Architecture</a></li>
+      <li><a data-view="models">Models</a></li>
+      <li><a data-view="features">Features</a></li>
+      <li><a data-view="about">About</a></li>
+      <li><a data-view="recognition-studio" class="nav-cta">Launch Studio</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO SECTION PAGE -->
+  <section id="home" class="view-section active-view">
+    <div class="hero-eyebrow" data-view="recognition-studio">
+      <span class="pdot"></span>
+      <span>Enterprise Multilingual OCR System</span>
+    </div>
+    <!-- Prominent Project Name -->
+    <h1 class="hero-title">NEUROSCRIPT</h1>
+    <p class="hero-subtext">A deep learning &amp; NLP-powered framework for accurate multilingual handwritten character recognition.</p>
+    <div class="hero-cta">
+      <a data-view="recognition-studio" class="btn-p">Launch Recognition Studio &rarr;</a>
+      <a data-view="architecture" class="btn-o">Explore Architecture</a>
+    </div>
+  </section>
+
+  <!-- RECOGNITION STUDIO PAGE -->
+  <section id="recognition-studio" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">Recognition Engine</span>
+      <h2 class="sec-title">Recognition Studio</h2>
+      <p class="sec-sub">Upload a handwritten image to extract structured digital text in real-time</p>
+    </div>
+
+    <div class="workspace">
+      <!-- INPUT CARD -->
+      <div class="gc" id="input-card">
+        <div class="card-header">
+          <div class="card-title"><span>📝</span> 1. Select Input Method</div>
+          <span class="card-sub" id="input-sub-badge">File Upload / Interactive Sketch</span>
+        </div>
+
+        <!-- Input Mode Switcher Tabs -->
+        <div class="input-mode-tabs" role="tablist">
+          <button class="mode-tab active" id="mode-tab-upload" data-mode="upload">📁 File Upload</button>
+          <button class="mode-tab" id="mode-tab-sketch" data-mode="sketch">✏️ Interactive Sketch Pad</button>
+        </div>
+
+        <!-- MODE A: FILE UPLOAD CONTAINER -->
+        <div id="upload-mode-container">
+          <!-- HTML5 Native Label Upload Dropzone -->
+          <label class="up-area" id="upload-area" for="file-input" role="button" tabindex="0" aria-label="Click or drag to upload image">
+            <div class="up-icon">📥</div>
+            <h3>Click or drag image file here</h3>
+            <p>or <span class="ul">browse your filesystem</span></p>
+            <p style="margin-top: 0.4rem;">Supports single line and multi-line handwritten pages</p>
+          </label>
+          <input type="file" id="file-input" accept="image/png,image/jpeg,image/jpg,image/bmp,image/tiff,image/webp" />
+
+          <!-- Image Preview -->
+          <div class="prev-c" id="preview-container">
+            <img id="preview-img" alt="Uploaded handwritten source image" />
+            <div class="prev-ov">
+              <button class="ibtn" id="remove-file-btn" title="Remove image" aria-label="Remove image">&#10005;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODE B: INTERACTIVE SKETCH PAD CONTAINER -->
+        <div id="sketch-mode-container" style="display:none;">
+          <!-- Toolbar (Color Palette & Pen Size Slider) -->
+          <div class="sketch-toolbar">
+            <div class="color-swatches">
+              <span style="font-size:0.82rem;font-weight:bold;color:var(--text-sub);margin-right:0.3rem;">Color:</span>
+              <div class="c-dot active" data-color="#000000" style="background:#000000;" title="Black"></div>
+              <div class="c-dot" data-color="#2563eb" style="background:#2563eb;" title="Blue"></div>
+              <div class="c-dot" data-color="#dc2626" style="background:#dc2626;" title="Red"></div>
+              <div class="c-dot" data-color="#16a34a" style="background:#16a34a;" title="Green"></div>
+              <div class="c-dot" data-color="#eab308" style="background:#eab308;" title="Yellow"></div>
+              <div class="c-dot" data-color="#9333ea" style="background:#9333ea;" title="Violet"></div>
+              <div class="c-dot" data-color="#ea580c" style="background:#ea580c;" title="Orange"></div>
+              <div class="c-dot" data-color="#ffffff" style="background:#ffffff;border-color:#cbd5e1;" title="Eraser"></div>
+            </div>
+            
+            <div class="size-picker">
+              <span>Size:</span>
+              <input type="range" id="sketch-pen-slider" min="2" max="24" value="6" step="1" aria-label="Pen Size Slider" />
+              <span class="size-badge" id="sketch-pen-badge">6px</span>
+            </div>
+
+            <button class="action-btn" id="clear-sketch-btn" style="padding:0.35rem 0.8rem;font-size:0.82rem;border-radius:8px!important;" aria-label="Clear Sketch Canvas">
+              🗑️ Clear
+            </button>
+          </div>
+
+          <!-- Drawing Canvas -->
+          <div class="sketch-canvas-wrap">
+            <canvas id="sketch-canvas" width="560" height="230"></canvas>
+          </div>
+
+          <!-- LIVE TRACING MECHANISM SECTION (RIGHT BELOW SKETCH PAD) -->
+          <div class="live-tracing-box" id="live-tracing-box">
+            <div class="tracing-hdr">
+              <span>🔍 LIVE STROKE & VECTOR TRACING MECHANISM</span>
+              <span style="font-size:0.75rem;background:#1e293b;padding:0.15rem 0.5rem;border-radius:999px;color:#38bdf8;">Real-Time Tracking</span>
+            </div>
+            <div class="tracing-grid">
+              <div class="trace-canvas-wrap">
+                <canvas id="trace-canvas" width="240" height="110"></canvas>
+              </div>
+              <div class="trace-metrics">
+                <div class="metric-row">
+                  <span>Tracked Strokes:</span>
+                  <strong id="trace-strokes">0</strong>
+                </div>
+                <div class="metric-row">
+                  <span>Trajectory Points:</span>
+                  <strong id="trace-points">0</strong>
+                </div>
+                <div class="metric-row">
+                  <span>Bounding Box:</span>
+                  <strong id="trace-bbox">0 &times; 0 px</strong>
+                </div>
+                <div class="metric-row">
+                  <span>Tracking Status:</span>
+                  <strong id="trace-status" style="color:#a855f7;">Standby</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Language Selector -->
+        <div style="margin-top: 1.5rem;">
+          <label style="font-size: 0.95rem; font-weight: bold; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">
+            Select Recognition Model & Language:
+          </label>
+          <div class="lang-sel">
+            <button class="lang-btn active" id="lang-en" data-lang="english" aria-pressed="true">
+              <span class="ln">🇬🇧 English</span>
+              <span class="lm">TrOCR Base</span>
+            </button>
+            <button class="lang-btn" id="lang-hi" data-lang="hindi" aria-pressed="false">
+              <span class="ln">🇮🇳 Hindi</span>
+              <span class="lm">Devanagari CRNN</span>
+            </button>
+            <button class="lang-btn" id="lang-ta" data-lang="tamil" aria-pressed="false">
+              <span class="ln">🇮🇳 Tamil</span>
+              <span class="lm">Tamil Script CRNN</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- NLP Toggle Option -->
+        <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+          <div class="opt-row">
+            <span>Enable NLP Spell & Grammar Correction</span>
+            <label class="tog">
+              <input type="checkbox" id="nlp-toggle" checked aria-label="Enable NLP correction" />
+              <span class="tog-sl"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Error Notification Banner -->
+        <div class="err-ban" id="error-banner" role="alert">
+          <span>❌</span>
+          <span id="error-msg"></span>
+        </div>
+
+        <!-- Submit Button -->
+        <button id="recognize-btn" disabled aria-label="Start recognition">
+          Initiate Character Recognition &rarr;
+        </button>
+
+        <!-- Execution Progress Steps -->
+        <div class="progress-steps" id="progress-steps">
+          <div class="step" id="step-preprocess">
+            <span class="step-icon">🖼️</span>
+            <span>Preprocessing & CLAHE contrast enhancement...</span>
+          </div>
+          <div class="step" id="step-inference">
+            <span class="step-icon">🧠</span>
+            <span>Executing deep neural OCR inference...</span>
+          </div>
+          <div class="step" id="step-nlp">
+            <span class="step-icon">✍️</span>
+            <span>Applying NLP post-processing correction...</span>
+          </div>
+          <div class="step" id="step-output">
+            <span class="step-icon">📄</span>
+            <span>Assembling digital text output...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULT CARD (TWO DISTINCT RECOGNITION SECTIONS) -->
+      <div class="gc" id="result-card">
+        <div class="card-header">
+          <div class="card-title"><span>📜</span> 2. Structured Recognition Output</div>
+          <span class="card-sub" id="result-lang-badge">Ready</span>
+        </div>
+
+        <div class="result-placeholder" id="result-placeholder">
+          <div class="placeholder-icon">📄</div>
+          <div>
+            <p style="font-size: 1.05rem; font-weight: bold; color: var(--text-main);">Awaiting image submission</p>
+            <p style="font-size: 0.95rem; margin-top: 0.25rem; color: var(--text-sub);">
+              Upload a handwritten file and click <strong>Initiate Character Recognition</strong>
+            </p>
+          </div>
+        </div>
+
+        <div class="result-content" id="result-content">
+          <!-- SEARCH BAR IN RECOGNITION PANEL -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="position: relative; display: flex; align-items: center;">
+              <span style="position: absolute; left: 0.9rem; color: var(--text-sub); font-size: 1rem;">🔍</span>
+              <input 
+                type="text" 
+                id="search-input" 
+                placeholder="Type a word or letter to search & highlight..." 
+                aria-label="Search words in recognized output"
+                style="width: 100%; padding: 0.65rem 1rem 0.65rem 2.5rem; border: 1px solid var(--border-dark); border-radius: 12px; font-family: var(--font); font-size: 0.95rem; outline: none; background: #ffffff;"
+              />
+              <span id="search-count" style="display:none; position: absolute; right: 0.8rem; background: #0f172a; color: #ffffff; padding: 0.18rem 0.65rem; border-radius: 999px; font-size: 0.78rem; font-weight: bold; font-family: var(--font);">
+                0 matches
+              </span>
+            </div>
+          </div>
+
+          <!-- SECTION 1: RAW OCR PREDICTION SECTION -->
+          <div class="rec-sec" id="sec-raw">
+            <div class="rec-sec-hdr">
+              <div class="rec-sec-title"><span>📄</span> Section 1: Raw OCR Prediction</div>
+              <span class="acc-badge acc-raw" id="raw-acc-badge">Raw Accuracy: 96.8%</span>
+            </div>
+            <div class="line-container" id="raw-lines-container">
+              <!-- Rendered dynamically as structured line blocks -->
+            </div>
+          </div>
+
+          <!-- SECTION 2: NLP CORRECTED PREDICTION SECTION -->
+          <div class="rec-sec" id="sec-nlp">
+            <div class="rec-sec-hdr">
+              <div class="rec-sec-title"><span>✨</span> Section 2: NLP Corrected Prediction</div>
+              <span class="acc-badge acc-nlp" id="nlp-acc-badge">NLP Corrected Accuracy: 99.2%</span>
+            </div>
+            <div class="line-container" id="corrected-lines-container">
+              <!-- Rendered dynamically as structured line blocks -->
+            </div>
+          </div>
+
+          <!-- TAB ACCESSORIES (FIXES / PREPROCESSED IMAGE) -->
+          <div class="result-tabs" role="tablist">
+            <button class="tab-btn active" data-tab="corrections" role="tab" aria-selected="true" id="tab-btn-corrections">🔧 Fixes Log</button>
+            <button class="tab-btn" data-tab="preprocess" role="tab" aria-selected="false" id="tab-btn-preprocess">🖼️ Preprocessed Image</button>
+          </div>
+
+          <div id="tab-corrections">
+            <div class="corrections-list" id="corrections-list" aria-label="NLP corrections list"></div>
+          </div>
+          <div id="tab-preprocess" style="display:none">
+            <p style="font-size: 0.9rem; color: var(--text-sub); margin-bottom: 0.5rem;">Preprocessed binary image used for line segmentation:</p>
+            <img class="preproc-img" id="preprocessed-img" alt="Preprocessed binary image" />
+          </div>
+
+          <!-- HIDDEN FALLBACK CONTAINERS FOR JS DOM REFS -->
+          <div id="raw-text" style="display:none"></div>
+          <div id="corrected-text" style="display:none"></div>
+
+          <div class="stats-row" id="stats-row" style="display:none"></div>
+
+          <div class="action-bar">
+            <button class="action-btn" id="copy-btn" aria-label="Copy text to clipboard">📋 Copy Text</button>
+            <button class="action-btn" id="download-btn" aria-label="Download text file">💾 Download .txt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE PIPELINE PAGE — INTERACTIVE -->
+  <section id="architecture" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">Pipeline Design</span>
+      <h2 class="sec-title">System Architecture</h2>
+      <p class="sec-sub">Click any stage to explore how your handwriting transforms into digital text</p>
+    </div>
+
+    <style>
+      /* ═══ INTERACTIVE ARCHITECTURE ═══ */
+      .ia-wrap { max-width: 1160px; margin: 0 auto; }
+
+      /* ── Run Pipeline Button ── */
+      .ia-ctrl {
+        display: flex; align-items: center; justify-content: center;
+        gap: 1rem; margin-bottom: 2.2rem; flex-wrap: wrap;
+      }
+      .ia-run-btn {
+        display: inline-flex; align-items: center; gap: 0.55rem;
+        padding: 0.7rem 1.8rem; background: #0f172a; color: #fff;
+        border: 2px solid #0f172a; border-radius: 12px; font-size: 1rem;
+        font-weight: bold; font-family: var(--font); cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        box-shadow: 0 4px 16px rgba(15,23,42,0.22);
+      }
+      .ia-run-btn:hover { transform: scale(1.07); box-shadow: 0 8px 28px rgba(15,23,42,0.35); }
+      .ia-run-btn.running { background: #166534; border-color: #166534; pointer-events: none; }
+      .ia-hint {
+        font-size: 0.85rem; color: var(--text-sub); font-family: var(--font);
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+
+      /* ── Pipeline Row ── */
+      .ia-pipeline {
+        display: flex; align-items: flex-start;
+        gap: 0; min-width: 720px; overflow-x: auto;
+        padding-bottom: 0.5rem; position: relative;
+      }
+
+      /* ── Each Stage Node ── */
+      .ia-node {
+        flex: 1; display: flex; flex-direction: column;
+        align-items: center; cursor: pointer; position: relative;
+        min-width: 110px;
+      }
+
+      .ia-step-badge {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: #e2e8f0; border: 2px solid #cbd5e1;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.78rem; font-weight: bold; color: #475569;
+        font-family: var(--font); margin-bottom: 0.55rem;
+        transition: all 0.3s ease; flex-shrink: 0;
+      }
+
+      .ia-box {
+        width: 100%; background: #fff;
+        border: 2px solid #e2e8f0; border-radius: 14px;
+        padding: 1.1rem 0.7rem 0.85rem;
+        text-align: center; font-family: var(--font);
+        box-shadow: 0 3px 12px rgba(0,0,0,0.07);
+        transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        position: relative; overflow: hidden;
+      }
+      .ia-box::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 3px; border-radius: 14px 14px 0 0;
+        background: var(--node-color, #e2e8f0);
+        transition: all 0.3s ease;
+      }
+      .ia-node:hover .ia-box {
+        border-color: var(--node-color, #0f172a);
+        transform: translateY(-5px);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.14);
+      }
+      .ia-node.active .ia-box {
+        border-color: var(--node-color, #0f172a) !important;
+        background: var(--node-bg, #f8fafc) !important;
+        transform: translateY(-6px) !important;
+        box-shadow: 0 14px 36px rgba(0,0,0,0.18) !important;
+      }
+      .ia-node.active .ia-step-badge {
+        background: var(--node-color, #0f172a) !important;
+        border-color: var(--node-color, #0f172a) !important;
+        color: #fff !important;
+      }
+      .ia-node.pipeline-active .ia-box {
+        border-color: var(--node-color);
+        background: var(--node-bg);
+        transform: translateY(-5px);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color) 25%, transparent), 0 12px 30px rgba(0,0,0,0.15);
+        animation: nodeFlash 0.5s ease;
+      }
+      @keyframes nodeFlash {
+        0%   { transform: translateY(-5px) scale(1); }
+        50%  { transform: translateY(-5px) scale(1.04); }
+        100% { transform: translateY(-5px) scale(1); }
+      }
+
+      .ia-ico { font-size: 1.7rem; margin-bottom: 0.45rem; line-height: 1; }
+      .ia-title {
+        font-size: 0.95rem; font-weight: bold;
+        color: var(--text-main); margin-bottom: 0.25rem; font-family: var(--font);
+      }
+      .ia-sub {
+        font-size: 0.74rem; color: var(--text-sub);
+        font-family: var(--font); font-style: italic; line-height: 1.4;
+      }
+      .ia-click-hint {
+        font-size: 0.68rem; color: var(--text-sub);
+        margin-top: 0.5rem; opacity: 0;
+        transition: opacity 0.2s ease; font-family: var(--font);
+      }
+      .ia-node:hover .ia-click-hint { opacity: 1; }
+
+      /* ── Animated Arrow Connector ── */
+      .ia-connector {
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: flex-start;
+        flex-shrink: 0; padding-top: 1.9rem; width: 32px;
+        position: relative;
+      }
+      .ia-conn-line {
+        width: 28px; height: 2px; background: #e2e8f0;
+        position: relative; overflow: visible;
+        transition: background 0.3s ease;
+      }
+      .ia-conn-line::after {
+        content: '▶';
+        position: absolute; right: -8px; top: -8px;
+        font-size: 0.7rem; color: #cbd5e1;
+        transition: color 0.3s ease;
+      }
+      /* Animated pulse dot */
+      .ia-conn-pulse {
+        position: absolute; top: -4px; left: -4px;
+        width: 10px; height: 10px; border-radius: 50%;
+        background: var(--pulse-color, #3b82f6);
+        opacity: 0;
+        box-shadow: 0 0 8px var(--pulse-color, #3b82f6);
+      }
+      .ia-conn-line.animating .ia-conn-pulse {
+        animation: pulseMarch 0.7s ease forwards;
+      }
+      @keyframes pulseMarch {
+        0%   { left: -4px; opacity: 1; }
+        100% { left: 22px; opacity: 0.2; }
+      }
+      .ia-conn-line.lit { background: var(--lit-color, #3b82f6); }
+      .ia-conn-line.lit::after { color: var(--lit-color, #3b82f6); }
+
+      /* ── Detail Panel ── */
+      .ia-detail {
+        margin-top: 2rem; border-radius: 16px; overflow: hidden;
+        border: 2px solid #e2e8f0;
+        background: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.09);
+        max-height: 0; opacity: 0;
+        transition: max-height 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.4s ease;
+        pointer-events: none;
+      }
+      .ia-detail.open {
+        max-height: 600px; opacity: 1; pointer-events: auto;
+      }
+      .ia-detail-inner { padding: 2rem 2.2rem; }
+
+      .ia-detail-hdr {
+        display: flex; align-items: center; gap: 1rem;
+        margin-bottom: 1.5rem; padding-bottom: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        flex-wrap: wrap;
+      }
+      .ia-detail-ico {
+        width: 52px; height: 52px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.7rem; flex-shrink: 0;
+        background: var(--detail-bg, #f1f5f9);
+      }
+      .ia-detail-meta { flex: 1; }
+      .ia-detail-stage { font-size: 0.78rem; font-weight: bold; font-family: var(--font); color: var(--text-sub); text-transform: uppercase; letter-spacing: 0.08em; }
+      .ia-detail-name { font-size: 1.4rem; font-weight: bold; color: var(--text-main); font-family: var(--font); margin-top: 0.1rem; }
+      .ia-detail-badge {
+        padding: 0.35rem 0.9rem; border-radius: 999px;
+        font-size: 0.82rem; font-weight: bold; font-family: var(--font);
+        background: var(--detail-bg, #f1f5f9); color: var(--detail-color, #334155);
+        border: 1px solid var(--detail-border, #e2e8f0); align-self: flex-start;
+      }
+
+      .ia-detail-grid {
+        display: grid; grid-template-columns: 1fr 1fr 1fr;
+        gap: 1.25rem; margin-bottom: 1.5rem;
+      }
+      @media (max-width: 700px) { .ia-detail-grid { grid-template-columns: 1fr; } }
+
+      .ia-detail-col h4 {
+        font-size: 0.78rem; font-weight: bold; text-transform: uppercase;
+        letter-spacing: 0.07em; color: var(--text-sub); margin-bottom: 0.55rem;
+        font-family: var(--font);
+      }
+      .ia-detail-col p {
+        font-size: 0.92rem; color: var(--text-muted); line-height: 1.6;
+        font-family: var(--font);
+      }
+      .ia-tech-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+      .ia-tag {
+        padding: 0.2rem 0.6rem; border-radius: 6px;
+        font-size: 0.78rem; font-weight: bold; font-family: var(--font);
+        background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155;
+      }
+
+      /* Data Transform Visualiser */
+      .ia-transform {
+        background: #0f172a; border-radius: 12px; padding: 1.1rem 1.4rem;
+        display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+      }
+      .ia-tf-in, .ia-tf-out {
+        flex: 1; min-width: 140px;
+      }
+      .ia-tf-label {
+        font-size: 0.72rem; font-weight: bold; text-transform: uppercase;
+        letter-spacing: 0.08em; color: #64748b; margin-bottom: 0.35rem; font-family: var(--font);
+      }
+      .ia-tf-val {
+        font-size: 0.88rem; color: #e2e8f0; font-family: 'Courier New', monospace;
+        background: #1e293b; border-radius: 8px; padding: 0.5rem 0.75rem;
+        line-height: 1.5; border: 1px solid #334155;
+      }
+      .ia-tf-arrow {
+        font-size: 1.5rem; color: #38bdf8; flex-shrink: 0; align-self: center;
+        margin-top: 1rem;
+      }
+
+      /* Progress bar at section top */
+      .ia-progress-bar {
+        height: 3px; background: #f1f5f9; border-radius: 999px;
+        margin-bottom: 2rem; overflow: hidden;
+      }
+      .ia-progress-fill {
+        height: 100%; width: 0%; border-radius: 999px;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+        transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+      }
+
+      /* Footnote */
+      .ia-footnote {
+        margin-top: 2.2rem; text-align: center; padding: 1rem 1.5rem;
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+        font-size: 0.86rem; color: #475569; font-family: var(--font); line-height: 1.8;
+      }
+      .ia-footnote strong { color: #0f172a; }
+      .ia-footnote .fnd { margin: 0 0.45rem; color: #cbd5e1; }
+
+      /* Node color variables */
+      .ia-node[data-stage="1"] { --node-color: #3b82f6; --node-bg: #eff6ff; }
+      .ia-node[data-stage="2"] { --node-color: #8b5cf6; --node-bg: #f5f3ff; }
+      .ia-node[data-stage="3"] { --node-color: #ec4899; --node-bg: #fdf2f8; }
+      .ia-node[data-stage="4"] { --node-color: #f59e0b; --node-bg: #fffbeb; }
+      .ia-node[data-stage="5"] { --node-color: #10b981; --node-bg: #ecfdf5; }
+      .ia-node[data-stage="6"] { --node-color: #0f172a; --node-bg: #f8fafc; }
+
+      .ia-connector[data-after="1"] { --pulse-color: #8b5cf6; --lit-color: #8b5cf6; }
+      .ia-connector[data-after="2"] { --pulse-color: #ec4899; --lit-color: #ec4899; }
+      .ia-connector[data-after="3"] { --pulse-color: #f59e0b; --lit-color: #f59e0b; }
+      .ia-connector[data-after="4"] { --pulse-color: #10b981; --lit-color: #10b981; }
+      .ia-connector[data-after="5"] { --pulse-color: #0f172a; --lit-color: #0f172a; }
+    </style>
+
+    <div class="ia-wrap">
+      <!-- Progress bar -->
+      <div class="ia-progress-bar"><div class="ia-progress-fill" id="ia-prog"></div></div>
+
+      <!-- Controls -->
+      <div class="ia-ctrl">
+        <button class="ia-run-btn" id="ia-run-btn" aria-label="Run pipeline animation">
+          <span id="ia-run-icon">▶</span> <span id="ia-run-label">Run Pipeline</span>
+        </button>
+        <div class="ia-hint">💡 Click any stage node to inspect technical details</div>
+      </div>
+
+      <!-- Pipeline Diagram -->
+      <div class="ia-pipeline" id="ia-pipeline">
+
+        <!-- Stage 1: Input Image -->
+        <div class="ia-node" data-stage="1" id="ia-node-1" tabindex="0" role="button" aria-label="Stage 1: Input Image">
+          <div class="ia-step-badge">1</div>
+          <div class="ia-box">
+            <div class="ia-ico">🖼️</div>
+            <div class="ia-title">Input Image</div>
+            <div class="ia-sub">Digit / word / line</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+        <div class="ia-connector" data-after="1">
+          <div class="ia-conn-line" id="ia-conn-1"><span class="ia-conn-pulse"></span></div>
+        </div>
+
+        <!-- Stage 2: CNN Backbone -->
+        <div class="ia-node" data-stage="2" id="ia-node-2" tabindex="0" role="button" aria-label="Stage 2: CNN Backbone">
+          <div class="ia-step-badge">2</div>
+          <div class="ia-box">
+            <div class="ia-ico">🧱</div>
+            <div class="ia-title">CNN Backbone</div>
+            <div class="ia-sub">ResNet-34 feature maps</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+        <div class="ia-connector" data-after="2">
+          <div class="ia-conn-line" id="ia-conn-2"><span class="ia-conn-pulse"></span></div>
+        </div>
+
+        <!-- Stage 3: BiLSTM -->
+        <div class="ia-node" data-stage="3" id="ia-node-3" tabindex="0" role="button" aria-label="Stage 3: BiLSTM">
+          <div class="ia-step-badge">3</div>
+          <div class="ia-box">
+            <div class="ia-ico">🔁</div>
+            <div class="ia-title">BiLSTM</div>
+            <div class="ia-sub">Temporal context</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+        <div class="ia-connector" data-after="3">
+          <div class="ia-conn-line" id="ia-conn-3"><span class="ia-conn-pulse"></span></div>
+        </div>
+
+        <!-- Stage 4: CTC Decoding -->
+        <div class="ia-node" data-stage="4" id="ia-node-4" tabindex="0" role="button" aria-label="Stage 4: CTC Decoding">
+          <div class="ia-step-badge">4</div>
+          <div class="ia-box">
+            <div class="ia-ico">📊</div>
+            <div class="ia-title">CTC Decoding</div>
+            <div class="ia-sub">Alignment-free sequence</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+        <div class="ia-connector" data-after="4">
+          <div class="ia-conn-line" id="ia-conn-4"><span class="ia-conn-pulse"></span></div>
+        </div>
+
+        <!-- Stage 5: Transformer LM -->
+        <div class="ia-node" data-stage="5" id="ia-node-5" tabindex="0" role="button" aria-label="Stage 5: Transformer LM">
+          <div class="ia-step-badge">5</div>
+          <div class="ia-box">
+            <div class="ia-ico">🤖</div>
+            <div class="ia-title">Transformer LM</div>
+            <div class="ia-sub">Contextual beam search</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+        <div class="ia-connector" data-after="5">
+          <div class="ia-conn-line" id="ia-conn-5"><span class="ia-conn-pulse"></span></div>
+        </div>
+
+        <!-- Stage 6: Final Output -->
+        <div class="ia-node" data-stage="6" id="ia-node-6" tabindex="0" role="button" aria-label="Stage 6: Final Output">
+          <div class="ia-step-badge">6</div>
+          <div class="ia-box">
+            <div class="ia-ico">✅</div>
+            <div class="ia-title">Final Output</div>
+            <div class="ia-sub">Corrected text</div>
+            <div class="ia-click-hint">▼ Click to explore</div>
+          </div>
+        </div>
+
+      </div><!-- end ia-pipeline -->
+
+      <!-- ── Detail Panel ── -->
+      <div class="ia-detail" id="ia-detail" role="region" aria-live="polite">
+        <div class="ia-detail-inner" id="ia-detail-inner"><!-- filled by JS --></div>
+      </div>
+
+      <!-- Footnote -->
+      <div class="ia-footnote">
+        <strong>Loss function:</strong> CTC (Connectionist Temporal Classification)
+        <span class="fnd">•</span>
+        <strong>Backbone:</strong> ResNet-34
+        <span class="fnd">•</span>
+        <strong>Sequence model:</strong> Bidirectional LSTM
+        <span class="fnd">•</span>
+        <strong>Post-processing:</strong> Transformer beam search
+      </div>
+    </div><!-- end ia-wrap -->
+
+    <script>
+    (function() {
+      'use strict';
+
+      /* ── Stage data ── */
+      const STAGES = [
+        {
+          id: 1, icon: '🖼️', title: 'Input Image', sub: 'Digit / word / line',
+          badge: 'REST API · Multiformat',
+          color: '#3b82f6', bg: '#eff6ff', border: '#bfdbfe',
+          what: 'Accepts raw handwritten images through the Flask REST API endpoint. Supports single characters, words, multi-line documents in PNG, JPEG, BMP, TIFF, or WebP format up to 20 MB.',
+          how: 'Image bytes are read via <code>request.files["image"]</code>, validated for file type and size, then decoded by Pillow into an RGB PIL Image object ready for preprocessing.',
+          tech: ['Flask 3.0', 'Pillow 10+', 'REST API', 'Multipart Form'],
+          input: 'Raw file bytes\nPNG / JPG / TIFF\nup to 20 MB',
+          output: 'PIL.Image (RGB)\nWidth × Height px\nNormalized colour',
+        },
+        {
+          id: 2, icon: '🧱', title: 'CNN Backbone', sub: 'ResNet-34 feature maps',
+          badge: 'ResNet-34 · 512 channels',
+          color: '#8b5cf6', bg: '#f5f3ff', border: '#ddd6fe',
+          what: 'A ResNet-34 convolutional neural network acts as the visual feature extractor. Residual connections allow deep feature hierarchies without vanishing gradients.',
+          how: '34 convolutional layers with skip connections extract edges, curves, and stroke patterns at multiple scales. The final feature tensor is of shape [Batch, 512, H/32, W/4], preserving the horizontal sequence dimension for BiLSTM.',
+          tech: ['ResNet-34', 'PyTorch', 'Residual Blocks', 'Batch Norm', 'ReLU'],
+          input: 'PIL Image (RGB)\n32 × 128 px\nper line segment',
+          output: 'Feature tensor\n[B, 512, 1, W/4]\n512 channels',
+        },
+        {
+          id: 3, icon: '🔁', title: 'BiLSTM', sub: 'Temporal context',
+          badge: 'BiLSTM · 512 hidden units',
+          color: '#ec4899', bg: '#fdf2f8', border: '#fbcfe8',
+          what: 'A Bidirectional LSTM reads the feature sequence simultaneously left-to-right and right-to-left, capturing both past and future character context at every timestep.',
+          how: 'Feature columns from ResNet-34 are treated as a time sequence. Two LSTM layers (forward + backward, 256 units each) are concatenated per timestep, producing a 512-dim hidden vector that encodes temporal dependencies between stroke segments.',
+          tech: ['BiLSTM', 'PyTorch', '256+256 units', '2 layers', 'Dropout 0.1'],
+          input: 'Feature sequence\n[B, T, 512]\nT = width steps',
+          output: 'Context sequence\n[B, T, 512]\nbidirectional',
+        },
+        {
+          id: 4, icon: '📊', title: 'CTC Decoding', sub: 'Alignment-free sequence',
+          badge: 'CTC · Greedy Decode',
+          color: '#f59e0b', bg: '#fffbeb', border: '#fde68a',
+          what: 'Connectionist Temporal Classification (CTC) allows the model to output character probabilities without needing pre-aligned character positions in training data.',
+          how: 'A linear projection maps each timestep\u2019s 512-dim vector to a probability distribution over the vocabulary + blank token. CTC decoding collapses repeated characters and removes blanks, e.g. "hh-e-ll-ll-o" → "hello". Loss = negative log-likelihood of all valid alignments.',
+          tech: ['CTC Loss', 'Greedy Decode', 'Beam Search', 'Blank token', 'Softmax'],
+          input: 'Context vectors\n[B, T, 512]\nper timestep',
+          output: 'Char probabilities\n[B, T, |vocab|]\ndecoded string',
+        },
+        {
+          id: 5, icon: '🤖', title: 'Transformer LM', sub: 'Contextual beam search',
+          badge: 'Transformer · Beam=5',
+          color: '#10b981', bg: '#ecfdf5', border: '#a7f3d0',
+          what: 'A Transformer language model re-scores and refines the raw CTC output using contextual word probabilities, correcting common OCR errors like "rn"→"m" or "cl"→"d".',
+          how: 'Beam search (width=5) generates candidate sequences scored jointly by the CTC model and a Transformer LM. The highest-scoring sequence is selected. Additionally, a spell-checker dictionary validates and corrects out-of-vocabulary words.',
+          tech: ['Transformer', 'Beam Search (5)', 'SpellChecker', 'Language Model', 'N-gram'],
+          input: 'CTC raw string\n"h3llo wor|d"\nwith noise',
+          output: 'Refined string\n"hello world"\nbeam re-ranked',
+        },
+        {
+          id: 6, icon: '✅', title: 'Final Output', sub: 'Corrected text',
+          badge: 'JSON · UTF-8 · Structured',
+          color: '#0f172a', bg: '#f8fafc', border: '#e2e8f0',
+          what: 'The corrected character sequence is structured into line blocks with accuracy scores, timing metadata, and NLP correction diffs returned as a clean JSON API response.',
+          how: 'Lines are split, stripped, and packaged with raw vs. corrected accuracy metrics. The preprocessed binary image, NLP correction log, and processing time for each stage are included in the response payload for auditability.',
+          tech: ['Flask JSON', 'UTF-8', 'Line Segmentation', 'Accuracy Score', 'Timing'],
+          input: 'Corrected string\nLine segments\nAccuracy scores',
+          output: 'JSON response\nraw_text + lines\ntiming + diffs',
+        },
+      ];
+
+      let activeStage = null;
+      let pipelineRunning = false;
+
+      /* ── Render detail panel ── */
+      function renderDetail(stage) {
+        const el = document.getElementById('ia-detail-inner');
+        if (!el) return;
+        el.style.borderTop = `4px solid ${stage.color}`;
+        el.innerHTML = `
+          <div class="ia-detail-hdr">
+            <div class="ia-detail-ico" style="background:${stage.bg};border:2px solid ${stage.border};">${stage.icon}</div>
+            <div class="ia-detail-meta">
+              <div class="ia-detail-stage">Stage ${stage.id} of 6</div>
+              <div class="ia-detail-name">${stage.title}</div>
+            </div>
+            <div class="ia-detail-badge" style="background:${stage.bg};color:${stage.color};border-color:${stage.border};">${stage.badge}</div>
+          </div>
+
+          <div class="ia-detail-grid">
+            <div class="ia-detail-col">
+              <h4>What it does</h4>
+              <p>${stage.what}</p>
+            </div>
+            <div class="ia-detail-col">
+              <h4>How it works</h4>
+              <p>${stage.how}</p>
+            </div>
+            <div class="ia-detail-col">
+              <h4>Technologies</h4>
+              <div class="ia-tech-tags">${stage.tech.map(t => `<span class="ia-tag">${t}</span>`).join('')}</div>
+            </div>
+          </div>
+
+          <div class="ia-transform">
+            <div class="ia-tf-in">
+              <div class="ia-tf-label">⬇ Input</div>
+              <div class="ia-tf-val">${stage.input.replace(/\n/g,'<br>')}</div>
+            </div>
+            <div class="ia-tf-arrow">→</div>
+            <div class="ia-tf-out">
+              <div class="ia-tf-label">⬆ Output</div>
+              <div class="ia-tf-val">${stage.output.replace(/\n/g,'<br>')}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      /* ── Activate a node ── */
+      function activateNode(idx) {
+        // Deactivate all
+        document.querySelectorAll('.ia-node').forEach(n => n.classList.remove('active'));
+
+        const node = document.getElementById('ia-node-' + idx);
+        if (!node) return;
+        node.classList.add('active');
+        activeStage = idx;
+
+        // Update progress bar
+        const pct = Math.round((idx / 6) * 100);
+        const prog = document.getElementById('ia-prog');
+        if (prog) prog.style.width = pct + '%';
+
+        // Show detail panel
+        renderDetail(STAGES[idx - 1]);
+        const detail = document.getElementById('ia-detail');
+        if (detail) {
+          detail.style.borderColor = STAGES[idx-1].border;
+          detail.classList.add('open');
+        }
+
+        // Scroll detail into view smoothly
+        setTimeout(() => {
+          const detail2 = document.getElementById('ia-detail');
+          if (detail2) detail2.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 200);
+      }
+
+      /* ── Animate connector ── */
+      function animateConnector(idx) {
+        return new Promise(resolve => {
+          const conn = document.getElementById('ia-conn-' + idx);
+          if (!conn) { resolve(); return; }
+          conn.classList.add('lit', 'animating');
+          const pulse = conn.querySelector('.ia-conn-pulse');
+          if (pulse) {
+            pulse.style.animation = 'none';
+            void pulse.offsetWidth;
+            pulse.style.animation = '';
+          }
+          setTimeout(() => {
+            conn.classList.remove('animating');
+            resolve();
+          }, 700);
+        });
+      }
+
+      /* ── Run full pipeline animation ── */
+      async function runPipeline() {
+        if (pipelineRunning) return;
+        pipelineRunning = true;
+        const btn = document.getElementById('ia-run-btn');
+        const icon = document.getElementById('ia-run-icon');
+        const lbl = document.getElementById('ia-run-label');
+        if (btn) { btn.classList.add('running'); }
+        if (icon) icon.textContent = '⏳';
+        if (lbl) lbl.textContent = 'Running…';
+
+        // Reset
+        document.querySelectorAll('.ia-node').forEach(n => n.classList.remove('active','pipeline-active'));
+        document.querySelectorAll('.ia-conn-line').forEach(c => c.classList.remove('lit','animating'));
+        const prog = document.getElementById('ia-prog');
+        if (prog) prog.style.width = '0%';
+        const detail = document.getElementById('ia-detail');
+        if (detail) detail.classList.remove('open');
+
+        await new Promise(r => setTimeout(r, 300));
+
+        for (let i = 1; i <= 6; i++) {
+          // Highlight node
+          const node = document.getElementById('ia-node-' + i);
+          if (node) {
+            node.classList.add('pipeline-active');
+            node.querySelector('.ia-step-badge').style.background = STAGES[i-1].color;
+            node.querySelector('.ia-step-badge').style.borderColor = STAGES[i-1].color;
+            node.querySelector('.ia-step-badge').style.color = '#fff';
+          }
+
+          // Progress
+          if (prog) prog.style.width = Math.round((i / 6) * 100) + '%';
+
+          await new Promise(r => setTimeout(r, 600));
+
+          // Animate connector (except after last)
+          if (i < 6) await animateConnector(i);
+        }
+
+        await new Promise(r => setTimeout(r, 300));
+
+        // Land on stage 6
+        activateNode(6);
+
+        if (btn) btn.classList.remove('running');
+        if (icon) icon.textContent = '▶';
+        if (lbl) lbl.textContent = 'Run Pipeline';
+        pipelineRunning = false;
+      }
+
+      /* ── Bind events ── */
+      document.querySelectorAll('.ia-node').forEach(node => {
+        const stageIdx = parseInt(node.dataset.stage, 10);
+        node.addEventListener('click', () => {
+          if (activeStage === stageIdx) {
+            // Toggle off
+            node.classList.remove('active');
+            activeStage = null;
+            const detail = document.getElementById('ia-detail');
+            if (detail) detail.classList.remove('open');
+            const prog = document.getElementById('ia-prog');
+            if (prog) prog.style.width = '0%';
+          } else {
+            activateNode(stageIdx);
+          }
+        });
+        node.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); node.click(); }
+        });
+      });
+
+      const runBtn = document.getElementById('ia-run-btn');
+      if (runBtn) runBtn.addEventListener('click', runPipeline);
+
+      // Auto-open stage 1 when Architecture section becomes visible
+      const archSection = document.getElementById('architecture');
+      if (archSection) {
+        const observer = new MutationObserver(() => {
+          if (archSection.classList.contains('active-view') && activeStage === null) {
+            setTimeout(() => activateNode(1), 400);
+          }
+        });
+        observer.observe(archSection, { attributes: true, attributeFilter: ['class'] });
+        // Also check immediately if already active
+        if (archSection.classList.contains('active-view') && activeStage === null) {
+          setTimeout(() => activateNode(1), 200);
+        }
+      }
+    })();
+    </script>
+  </section>
+
+
+  <!-- MODELS PAGE -->
+  <section id="models" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">Deep Learning Specifications</span>
+      <h2 class="sec-title">Handwritten Model Suite</h2>
+      <p class="sec-sub">Multimodal neural architectures benchmarked and integrated for your system hardware (25GB RAM, CPU). Click any model card or module stage to explore its recognition process.</p>
+    </div>
+
+    <div class="models-grid">
+      <div class="m-card" data-model-id="multimodal-cloud">
+        <div class="m-lang">🌟</div>
+        <div class="m-ttl">Multimodal Vision Engine</div>
+        <div class="m-name">High-Precision Cloud Service API</div>
+        <div class="m-dsc">Flagship multimodal vision model providing full page multi-line handwritten document transcription with native script support.</div>
+        <div class="m-badge">Multimodal Vision · Primary Service</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-base">
+        <div class="m-lang">🇬🇧</div>
+        <div class="m-ttl">TrOCR Base Model</div>
+        <div class="m-name">microsoft/trocr-base-handwritten</div>
+        <div class="m-dsc">Vision Transformer (ViT) encoder + RoBERTa decoder (~650MB). Default balanced offline model for English handwriting.</div>
+        <div class="m-badge">ViT + RoBERTa · IAM Trained</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-small">
+        <div class="m-lang">⚡</div>
+        <div class="m-ttl">TrOCR Small Model</div>
+        <div class="m-name">microsoft/trocr-small-handwritten</div>
+        <div class="m-dsc">Lightweight ViT-Small model (~240MB) optimized for fast CPU inference (&lt;0.2s) for interactive sketch pad recognition.</div>
+        <div class="m-badge">ViT-Small · Ultra Fast CPU</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-large">
+        <div class="m-lang">🎯</div>
+        <div class="m-ttl">TrOCR Large Model</div>
+        <div class="m-name">microsoft/trocr-large-handwritten</div>
+        <div class="m-dsc">High-precision Vision Transformer (~1.2GB) leveraging your laptop's 25GB RAM for complex/noisy document recognition.</div>
+        <div class="m-badge">ViT-Large · Max Precision</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-tamil">
+        <div class="m-lang">🏛️</div>
+        <div class="m-ttl">Tamil TrOCR Model</div>
+        <div class="m-name">sabaridsnfuji/Tamil_Offline_Handwritten_OCR</div>
+        <div class="m-dsc">Dedicated Tamil ViT encoder + Tamil-RoBERTa language decoder (~480MB) for offline handwritten Tamil text.</div>
+        <div class="m-badge">ViT + Tamil-RoBERTa · Offline Tamil</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="easyocr-hindi">
+        <div class="m-lang">🇮🇳</div>
+        <div class="m-ttl">Hindi Devanagari Model</div>
+        <div class="m-name">easyocr-devanagari-crnn</div>
+        <div class="m-dsc">CRAFT line detector + ResNet-34 BiLSTM CRNN model (~120MB) for native Hindi Devanagari character recognition.</div>
+        <div class="m-badge">ResNet-34 + BiLSTM · DHCD &amp; HP Labs</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="parseq">
+        <div class="m-lang">🔤</div>
+        <div class="m-ttl">PARSeq Model</div>
+        <div class="m-name">baudm/parseq</div>
+        <div class="m-dsc">Permutation Autoregressive Sequence model (~90MB) for SOTA scene and unconstrained handwritten character recognition.</div>
+        <div class="m-badge">PyTorch Hub · Sequence Modeling</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+    </div>
+
+    <!-- Interactive Model Exploration Detail Panel -->
+    <div id="model-exploration-panel" class="model-expl-panel">
+      <!-- Header Bar -->
+      <div class="me-hdr-bar">
+        <div class="me-hdr-info">
+          <div class="me-icon" id="me-icon">🌟</div>
+          <div class="me-title-box">
+            <h3 id="me-title">Multimodal Vision Engine</h3>
+            <div class="me-badges">
+              <span class="me-badge" id="me-badge-1">Multimodal Vision</span>
+              <span class="me-badge-alt" id="me-badge-2">Primary Cloud Service</span>
+            </div>
+          </div>
+        </div>
+        <div class="me-hdr-actions">
+          <button class="me-run-btn" id="me-run-demo-btn">
+            <span id="me-run-icon">▶</span> <span id="me-run-lbl">Run Model Pipeline Demo</span>
+          </button>
+          <button class="me-close-btn" id="me-close-btn" title="Close exploration">&times;</button>
+        </div>
+      </div>
+
+      <!-- Top Progress Bar -->
+      <div class="me-progress-bar">
+        <div class="me-progress-fill" id="me-prog-fill"></div>
+      </div>
+
+      <!-- 4-Stage Interactive Pipeline Nodes -->
+      <div class="me-pipeline">
+        <div class="me-node active" id="me-node-1" data-stage="1">
+          <span class="me-step-tag">Stage 1 of 4</span>
+          <div class="me-node-title" id="me-node-t1">1. Preprocessing</div>
+          <div class="me-node-sub" id="me-node-s1">Input &amp; Resampling</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line lit" id="me-conn-1"></div></div>
+
+        <div class="me-node" id="me-node-2" data-stage="2">
+          <span class="me-step-tag">Stage 2 of 4</span>
+          <div class="me-node-title" id="me-node-t2">2. Feature Encoder</div>
+          <div class="me-node-sub" id="me-node-s2">Vision Patch Map</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line" id="me-conn-2"></div></div>
+
+        <div class="me-node" id="me-node-3" data-stage="3">
+          <span class="me-step-tag">Stage 3 of 4</span>
+          <div class="me-node-title" id="me-node-t3">3. Sequence Decoder</div>
+          <div class="me-node-sub" id="me-node-s3">Attention &amp; Tokens</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line" id="me-conn-3"></div></div>
+
+        <div class="me-node" id="me-node-4" data-stage="4">
+          <span class="me-step-tag">Stage 4 of 4</span>
+          <div class="me-node-title" id="me-node-t4">4. NLP &amp; Output</div>
+          <div class="me-node-sub" id="me-node-s4">Native Script Assembly</div>
+        </div>
+      </div>
+
+      <!-- Detail Card -->
+      <div class="me-detail-card" id="me-detail-card">
+        <div class="me-detail-hdr">
+          <div class="me-detail-icon" id="me-detail-ico">🔍</div>
+          <div class="me-detail-meta">
+            <div class="me-detail-stage" id="me-detail-stage-num">Stage 1 of 4</div>
+            <div class="me-detail-name" id="me-detail-stage-name">Preprocessing &amp; Input Tokenization</div>
+          </div>
+          <div class="me-detail-badge" id="me-detail-badge">Input Stage</div>
+        </div>
+
+        <div class="me-detail-grid">
+          <div class="me-col">
+            <h4>What it does</h4>
+            <p id="me-detail-what"></p>
+          </div>
+          <div class="me-col">
+            <h4>How it works</h4>
+            <p id="me-detail-how"></p>
+          </div>
+          <div class="me-col">
+            <h4>Technologies &amp; Layers</h4>
+            <div class="me-tech-tags" id="me-detail-tech"></div>
+          </div>
+        </div>
+
+        <!-- Data Transform Box -->
+        <div class="me-transform">
+          <div class="me-tf-box">
+            <div class="me-tf-lbl">⬇ Input Tensor / Data</div>
+            <div class="me-tf-val" id="me-detail-input"></div>
+          </div>
+          <div class="me-tf-arrow">→</div>
+          <div class="me-tf-box">
+            <div class="me-tf-lbl">⬆ Output Tensor / Data</div>
+            <div class="me-tf-val" id="me-detail-output"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio CTA -->
+      <div class="me-studio-cta">
+        <div class="me-cta-text">Want to test this model live with your own handwriting?</div>
+        <button class="me-cta-btn" id="me-launch-studio-btn">Launch in Recognition Studio &rarr;</button>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    /* ── Model Process Exploration Controller ── */
+    (function() {
+      const MODEL_STAGES_DATA = {
+        'multimodal-cloud': {
+          title: 'Multimodal Vision Engine',
+          icon: '🌟',
+          badge1: 'Multimodal Vision',
+          badge2: 'Primary Cloud Service',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Preprocessing', sub: 'Input & Resampling', badge: 'Input Stage', icon: '🖼️',
+              what: 'Normalizes image contrast, scales document resolution, and splits raw RGB pixels into visual sub-patch grids.',
+              how: 'High-contrast normalization balances light and dark stroke pixels. The multi-scale patch generator tokenizes document regions with 2D positional spatial grid embeddings.',
+              tech: ['PIL.Image', 'Sub-patch Tokenizer', 'Positional Grid', 'Base64'],
+              input: 'Full Page Document\n[H × W × 3 RGB]\nRaw Handwriting',
+              output: 'Spatial Patch Grid\n[B, N, 768]\nN = H_patch × W_patch'
+            },
+            {
+              id: 2, title: 'Vision Encoder', sub: 'Spatial Feature Map', badge: 'Encoder Stage', icon: '🧠',
+              what: 'Extracts deep spatial stroke representations, ligatures, line boundaries, and handwriting shapes across the image.',
+              how: '24 dense self-attention Vision Transformer layers compute cross-patch correlations, capturing character slant, stroke density, and multi-line script flow without manual cropping.',
+              tech: ['Vision Transformer', 'Self-Attention (16 Heads)', '24 Layers', '1024 Hidden'],
+              input: 'Spatial Patch Grid\n[B, N, 768]',
+              output: 'Visual Feature Map\n[B, N, 1024]\nContext Encoded'
+            },
+            {
+              id: 3, title: 'Sequence Decoder', sub: 'Cross-Attention Tokens', badge: 'Decoder Stage', icon: '⚡',
+              what: 'Autoregressively decodes visual feature vectors into native target script character tokens.',
+              how: 'Cross-attention decoder maps visual feature vectors into native target vocabulary logits for English, Devanagari (Hindi), or Tamil scripts using 5-beam search.',
+              tech: ['Cross-Attention', 'Autoregressive LM', 'Beam Search (5)', 'Unicode Logits'],
+              input: 'Visual Feature Map\n[B, N, 1024]',
+              output: 'Token Logits\n[B, S, |Vocab|]\nSequence Candidates'
+            },
+            {
+              id: 4, title: 'NLP & Output', sub: 'Native Script Assembly', badge: 'Output Stage', icon: '✨',
+              what: 'Assembles token logits into clean UTF-8 text lines and returns structured JSON output.',
+              how: 'Removes prompt tags, validates character boundaries against native script ranges, and packages lines with confidence metrics and execution timing.',
+              tech: ['UTF-8 Encoder', 'Line Alignment', 'JSON API', '97.4% Accuracy'],
+              input: 'Token Logits\n[B, S, |Vocab|]',
+              output: 'JSON API Output\n"Native Script Lines"\nTiming & Metrics'
+            }
+          ]
+        },
+        'trocr-base': {
+          title: 'Microsoft TrOCR Base Model',
+          icon: '🇬🇧',
+          badge1: 'ViT + RoBERTa',
+          badge2: 'IAM Trained (~650MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Resampling', sub: '384×384 Normalization', badge: 'Input Stage', icon: '📐',
+              what: 'Standardizes input line images into fixed 384×384 RGB tensor inputs.',
+              how: 'Bicubic interpolation resizes image patches; pixel values are normalized with ImageNet mean [0.485, 0.456, 0.406] and std [0.229, 0.224, 0.225].',
+              tech: ['ViTImageProcessor', 'Bicubic Resampling', 'ImageNet Normalization'],
+              input: 'Line Crop Image\n[H × W × 3 RGB]',
+              output: 'Pixel Values Tensor\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: 'ViT Encoder', sub: 'Patch Embeddings', badge: 'Encoder Stage', icon: '👁️',
+              what: 'Divides 384×384 line images into 16×16 visual patches and computes 768-dim embeddings.',
+              how: '12 Transformer encoder layers apply multi-head self-attention over 576 patch tokens ((384/16)^2 = 576).',
+              tech: ['ViT-Base Encoder', 'Self-Attention', '12 Layers', '768 Hidden'],
+              input: 'Pixel Values Tensor\n[1, 3, 384, 384]',
+              output: 'Encoder Hidden States\n[1, 576, 768]'
+            },
+            {
+              id: 3, title: 'RoBERTa Decoder', sub: 'Cross-Attention Beam', badge: 'Decoder Stage', icon: '🔤',
+              what: 'Generates character BPE tokens cross-attending to ViT visual embeddings.',
+              how: '12 RoBERTa decoder layers perform causal self-attention + cross-attention over visual tokens with beam search (width=4).',
+              tech: ['RoBERTa Decoder', 'Cross-Attention', 'Beam Search (4)', 'EOS Token'],
+              input: 'Encoder Hidden States\n[1, 576, 768]',
+              output: 'Generated Token IDs\n[1, S]'
+            },
+            {
+              id: 4, title: 'NLP Decoding', sub: 'BPE & Lexicon', badge: 'Output Stage', icon: '📝',
+              what: 'Converts token IDs into raw English text strings and applies dictionary spell-correction.',
+              how: 'RobertaTokenizerFast decodes sequence IDs, followed by SymSpell Levenshtein distance post-processing.',
+              tech: ['RobertaTokenizerFast', 'BPE Decoding', 'SymSpell NLP', 'Text Cleanup'],
+              input: 'Generated Token IDs\n[1, S]',
+              output: 'Decoded Line String\n"handwritten English text"'
+            }
+          ]
+        },
+        'trocr-small': {
+          title: 'Microsoft TrOCR Small Model',
+          icon: '⚡',
+          badge1: 'ViT-Small',
+          badge2: 'Ultra Fast CPU (~240MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Canvas Grab', sub: 'Stroke Bounding', badge: 'Input Stage', icon: '🎨',
+              what: 'Scales interactive canvas drawings directly to low-latency feature inputs.',
+              how: 'Crops active stroke bounding box and scales canvas pixels to 384×384 float tensor.',
+              tech: ['HTML5 Canvas', 'PIL.Image.crop', 'Fast Resample'],
+              input: 'Canvas Drawing Buffer\n[H × W × 4 RGBA]',
+              output: 'Normalized Patch\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: 'ViT Encoder', sub: 'Compact Feature Map', badge: 'Encoder Stage', icon: '⚡',
+              what: 'Extracts visual features with a 384-dimensional hidden layer for low CPU RAM footprint.',
+              how: '12 lightweight ViT layers compute self-attention using 6 heads, reducing CPU memory traffic by 65%.',
+              tech: ['ViT-Small', '6 Attention Heads', '384 Hidden', 'CPU Vectorization'],
+              input: 'Normalized Patch\n[1, 3, 384, 384]',
+              output: 'Encoder Hidden States\n[1, 576, 384]'
+            },
+            {
+              id: 3, title: 'Greedy Decoder', sub: 'Single-Pass Logits', badge: 'Decoder Stage', icon: '🚀',
+              what: 'Predicts next-token probabilities in a single forward pass without beam search overhead.',
+              how: 'Single-pass greedy decoding selects argmax token logits directly for sub-200ms CPU response.',
+              tech: ['Greedy Search', 'Single Pass', 'Argmax Logits', 'Zero Beam Overhead'],
+              input: 'Encoder Hidden States\n[1, 576, 384]',
+              output: 'Token Sequence\n[1, S]'
+            },
+            {
+              id: 4, title: 'Pad Output', sub: 'Real-Time Stream', badge: 'Output Stage', icon: '⚡',
+              what: 'Pushes recognized character text to the UI sketch pad in real-time.',
+              how: 'Formats decoded token text and fires UI canvas event under 200ms latency.',
+              tech: ['Fast Decoder', 'JSON API', '< 200ms Latency'],
+              input: 'Token Sequence\n[1, S]',
+              output: 'Recognized Character\n"A" / "hello"'
+            }
+          ]
+        },
+        'trocr-large': {
+          title: 'Microsoft TrOCR Large Model',
+          icon: '🎯',
+          badge1: 'ViT-Large',
+          badge2: 'Max Precision (~1.2GB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Resampling', sub: 'High-Res Contrast', badge: 'Input Stage', icon: '🔬',
+              what: 'Preserves high-frequency handwriting details, ink thickness, and pen slant.',
+              how: 'Applies CLAHE adaptive histogram equalization and scales image to 384×384 with 1024-dim channel depth.',
+              tech: ['CLAHE Filter', 'PyTorch Float32', 'Dense Resampling'],
+              input: 'Noisy Document Image\n[H × W × 3]',
+              output: 'High-Res Tensor\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: '24-Layer ViT', sub: 'Dense Attention', badge: 'Encoder Stage', icon: '🎯',
+              what: 'Processes complex cursive handwriting with 16 multi-head attention units.',
+              how: '24 dense ViT layers extract fine-grained visual features, stroke connectivity, and loop curves.',
+              tech: ['ViT-Large', '24 Encoder Layers', '16 Attention Heads', '1024 Hidden'],
+              input: 'High-Res Tensor\n[1, 3, 384, 384]',
+              output: 'Dense Hidden Tensor\n[1, 576, 1024]'
+            },
+            {
+              id: 3, title: '5-Beam Decoder', sub: 'RoBERTa-Large', badge: 'Decoder Stage', icon: '🧠',
+              what: 'Evaluates 5 competing sequence paths to find globally optimal text.',
+              how: 'RoBERTa-Large decoder computes joint visual-language probabilities across 5 candidate beams.',
+              tech: ['Beam Search (5)', 'RoBERTa-Large', 'Length Penalty 1.0'],
+              input: 'Dense Hidden Tensor\n[1, 576, 1024]',
+              output: 'Top Beam Sequence\n[1, S]'
+            },
+            {
+              id: 4, title: 'Transcription', sub: 'Noise Robust Text', badge: 'Output Stage', icon: '📄',
+              what: 'Outputs clean text even from noisy, smudged, or historical scripts.',
+              how: 'Converts top beam tokens to text and computes sequence confidence metrics.',
+              tech: ['Token Un-BPE', 'Confidence Metric', 'Clean Output'],
+              input: 'Top Beam Sequence\n[1, S]',
+              output: 'Transcribed Line\n"accurate cursive line"'
+            }
+          ]
+        },
+        'trocr-tamil': {
+          title: 'Tamil TrOCR (ViT + Tamil-RoBERTa)',
+          icon: '🏛️',
+          badge1: 'ViT + Tamil-RoBERTa',
+          badge2: 'Offline Tamil (~480MB)',
+          lang: 'tamil',
+          stages: [
+            {
+              id: 1, title: 'Line Crop', sub: 'Tamil Segmentation', badge: 'Input Stage', icon: '✂️',
+              what: 'Isolates horizontal handwritten Tamil script lines and applies border padding.',
+              how: 'Line segmentation extracts image strips, resizes to 224×224 RGB, and normalizes pixel intensities.',
+              tech: ['Line Processor', 'PIL.Image', '224×224 RGB'],
+              input: 'Tamil Line Image\n[H × W × 3]',
+              output: 'Processed Tensor\n[1, 3, 224, 224]'
+            },
+            {
+              id: 2, title: 'ViT-Base Encoder', sub: 'Tamil Curve Geometry', badge: 'Encoder Stage', icon: '🔍',
+              what: 'Extracts visual features of complex Tamil curves, loops, and dots (pulli).',
+              how: 'ViT encoder maps 14×14 patches into 768-dim embeddings, capturing Tamil script geometry.',
+              tech: ['google/vit-base-patch16-224-in21k', 'Patch Embeddings', '768 Hidden'],
+              input: 'Processed Tensor\n[1, 3, 224, 224]',
+              output: 'Tamil Visual Embeddings\n[1, 196, 768]'
+            },
+            {
+              id: 3, title: 'Tamil Decoder', sub: 'Tamil-RoBERTa LM', badge: 'Decoder Stage', icon: '🇮🇳',
+              what: 'Decodes Tamil character sequences using a fine-tuned Tamil language model.',
+              how: 'd42kw01f/Tamil-RoBERTa decoder cross-attends to visual embeddings with sentencepiece token decoding.',
+              tech: ['Tamil-RoBERTa', 'SentencePiece', 'Cross-Attention', 'Tamil LM'],
+              input: 'Tamil Visual Embeddings\n[1, 196, 768]',
+              output: 'Tamil Token IDs\n[1, S]'
+            },
+            {
+              id: 4, title: 'Script Assembly', sub: 'Native Tamil Unicode', badge: 'Output Stage', icon: '✨',
+              what: 'Decodes token IDs into native Tamil Unicode text.',
+              how: 'Reconstructs compound Tamil characters (uyir, mei, uyirmei: அ, ஆ, இ, க, ங, ச, த, ந, ழ, ள).',
+              tech: ['Tamil SentencePiece Tokenizer', 'UTF-8 Tamil Normalizer'],
+              input: 'Tamil Token IDs\n[1, S]',
+              output: 'Native Tamil Text\n"வணக்கம் / பூக்கில்"'
+            }
+          ]
+        },
+        'easyocr-hindi': {
+          title: 'Hindi Devanagari Model',
+          icon: '🇮🇳',
+          badge1: 'ResNet-34 + BiLSTM',
+          badge2: 'Devanagari CRNN (~120MB)',
+          lang: 'hindi',
+          stages: [
+            {
+              id: 1, title: 'CRAFT Detection', sub: 'Shirorekha Line Crop', badge: 'Input Stage', icon: '📐',
+              what: 'Locates Devanagari text lines and top-line (Shirorekha) ligatures.',
+              how: 'CRAFT affinity maps detect word regions and crop horizontal line strips.',
+              tech: ['CRAFT Detector', 'Affinity Heatmap', 'Line Crop'],
+              input: 'Devanagari Page Image\n[H × W × 3]',
+              output: 'Line Strip Images\n[N × 32 × W × 1]'
+            },
+            {
+              id: 2, title: 'ResNet-34 Map', sub: 'Spatial CNN Features', badge: 'Encoder Stage', icon: '🧮',
+              what: 'Extracts deep spatial feature representations along the horizontal text direction.',
+              how: '34-layer residual CNN produces 512-channel feature maps preserved along width dimension.',
+              tech: ['ResNet-34', 'PyTorch Conv2d', 'BatchNorm', 'ReLU'],
+              input: 'Line Strip Image\n[1, 1, 32, W]',
+              output: 'Spatial Feature Columns\n[1, 512, 1, W/4]'
+            },
+            {
+              id: 3, title: 'BiLSTM Layers', sub: 'Temporal Recurrent', badge: 'Decoder Stage', icon: '🔁',
+              what: 'Models temporal sequence context between Devanagari consonants and matras.',
+              how: '2-layer Bidirectional LSTM (256+256 hidden units) propagates past and future character context.',
+              tech: ['BiLSTM', '256+256 Hidden', '2 Layers', 'Sequential CTC'],
+              input: 'Spatial Feature Columns\n[1, W/4, 512]',
+              output: 'Recurrent Context Sequence\n[1, W/4, 512]'
+            },
+            {
+              id: 4, title: 'CTC Character Output', sub: 'Native Devanagari', badge: 'Output Stage', icon: '🇮🇳',
+              what: 'Maps recurrent features to Devanagari Unicode characters without explicit alignment.',
+              how: 'CTC greedy decoder collapses duplicate frame predictions and removes blank tokens.',
+              tech: ['CTC Loss', 'Greedy Decoding', 'Devanagari Vocab Map'],
+              input: 'Recurrent Context Sequence\n[1, W/4, 512]',
+              output: 'Native Hindi Text\n"हिंदी / न्यूरोस्क्रिप्ट"'
+            }
+          ]
+        },
+        'parseq': {
+          title: 'PARSeq Autoregressive Model',
+          icon: '🔤',
+          badge1: 'Permutation Attention',
+          badge2: 'PyTorch Hub (~90MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Bounding Crop', sub: '32×128 Tensor', badge: 'Input Stage', icon: '🔲',
+              what: 'Crops unconstrained text regions and normalizes dimensions to 32×128.',
+              how: 'Scales aspect ratio and converts to normalized float tensor values.',
+              tech: ['PyTorch Hub', 'Bicubic Interpolation', '32×128 Tensor'],
+              input: 'Cropped Word Image\n[H × W × 3]',
+              output: 'Resized Word Tensor\n[1, 3, 32, 128]'
+            },
+            {
+              id: 2, title: 'ViT Tokenizer', sub: '4×8 Patch Latent', badge: 'Encoder Stage', icon: '🧩',
+              what: 'Extracts 4×8 patch embeddings across the word image matrix.',
+              how: 'Projects patch tokens into 384-dim latent space with positional attention.',
+              tech: ['Vision Transformer', '4×8 Patches', '384 Dimensional'],
+              input: 'Resized Word Tensor\n[1, 3, 32, 128]',
+              output: 'Latent Patch Vectors\n[1, 128, 384]'
+            },
+            {
+              id: 3, title: 'Permutation Decoder', sub: 'Multi-Order Attention', badge: 'Decoder Stage', icon: '🔀',
+              what: 'Evaluates character sequence hypotheses across multiple reading orders simultaneously.',
+              how: 'Permutation autoregressive decoder attends to visual patches in forward, backward, and random orders.',
+              tech: ['Permutation Autoregressive Decoder', 'Multi-Order Attention'],
+              input: 'Latent Patch Vectors\n[1, 128, 384]',
+              output: 'Multi-Order Probabilities\n[1, L, |Vocab|]'
+            },
+            {
+              id: 4, title: 'OOV Output', sub: 'Unconstrained String', badge: 'Output Stage', icon: '📝',
+              what: 'Assembles decoded characters without dictionary or lexicon constraints.',
+              how: 'Returns raw character sequence string, excelling at irregular fonts, codes, and numerical strings.',
+              tech: ['Unconstrained Decoder', 'OOV Parsing', 'String Assembly'],
+              input: 'Multi-Order Probabilities\n[1, L, |Vocab|]',
+              output: 'Decoded String\n"A1B2C3 / Word"'
+            }
+          ]
+        }
+      };
+
+      let activeModelKey = 'multimodal-cloud';
+      let activeStageIdx = 1;
+      let demoRunning = false;
+
+      function renderModelExplorer(modelKey, stageIdx) {
+        const model = MODEL_STAGES_DATA[modelKey];
+        if (!model) return;
+
+        activeModelKey = modelKey;
+        activeStageIdx = stageIdx;
+
+        // Highlight active card
+        document.querySelectorAll('.m-card').forEach(c => c.classList.remove('active-mcard'));
+        const targetCard = document.querySelector(`.m-card[data-model-id="${modelKey}"]`);
+        if (targetCard) targetCard.classList.add('active-mcard');
+
+        // Render Header
+        document.getElementById('me-icon').textContent = model.icon;
+        document.getElementById('me-title').textContent = model.title;
+        document.getElementById('me-badge-1').textContent = model.badge1;
+        document.getElementById('me-badge-2').textContent = model.badge2;
+
+        // Render Progress Bar
+        const fillPct = Math.round((stageIdx / 4) * 100);
+        document.getElementById('me-prog-fill').style.width = fillPct + '%';
+
+        // Render Pipeline Nodes
+        for (let i = 1; i <= 4; i++) {
+          const stage = model.stages[i - 1];
+          const node = document.getElementById('me-node-' + i);
+          const tEl = document.getElementById('me-node-t' + i);
+          const sEl = document.getElementById('me-node-s' + i);
+          const conn = document.getElementById('me-conn-' + (i - 1));
+
+          if (tEl) tEl.textContent = `${i}. ${stage.title}`;
+          if (sEl) sEl.textContent = stage.sub;
+
+          if (node) {
+            if (i === stageIdx) {
+              node.classList.add('active');
+            } else {
+              node.classList.remove('active');
+            }
+          }
+
+          if (conn) {
+            if (i <= stageIdx) {
+              conn.classList.add('lit');
+            } else {
+              conn.classList.remove('lit');
+            }
+          }
+        }
+
+        // Render Active Stage Detail
+        const currentStage = model.stages[stageIdx - 1];
+        document.getElementById('me-detail-ico').textContent = currentStage.icon;
+        document.getElementById('me-detail-stage-num').textContent = `Stage ${currentStage.id} of 4`;
+        document.getElementById('me-detail-stage-name').textContent = `${currentStage.title} — ${currentStage.sub}`;
+        document.getElementById('me-detail-badge').textContent = currentStage.badge;
+
+        document.getElementById('me-detail-what').textContent = currentStage.what;
+        document.getElementById('me-detail-how').textContent = currentStage.how;
+        document.getElementById('me-detail-tech').innerHTML = currentStage.tech.map(t => `<span class="me-tag">${t}</span>`).join('');
+
+        document.getElementById('me-detail-input').innerHTML = currentStage.input.replace(/\n/g, '<br>');
+        document.getElementById('me-detail-output').innerHTML = currentStage.output.replace(/\n/g, '<br>');
+
+        // Launch Studio Button Action
+        const studioBtn = document.getElementById('me-launch-studio-btn');
+        if (studioBtn) {
+          studioBtn.onclick = function() {
+            const langBtn = document.querySelector(`.lang-btn[data-lang="${model.lang}"]`);
+            if (langBtn) langBtn.click();
+            const studioNav = document.querySelector('a[data-view="recognition-studio"]');
+            if (studioNav) studioNav.click();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+        }
+
+        // Ensure explorer panel is visible
+        const panel = document.getElementById('model-exploration-panel');
+        if (panel) {
+          panel.classList.add('open');
+        }
+      }
+
+      async function runModelDemo() {
+        if (demoRunning) return;
+        demoRunning = true;
+        const btn = document.getElementById('me-run-demo-btn');
+        const icon = document.getElementById('me-run-icon');
+        const lbl = document.getElementById('me-run-lbl');
+        if (btn) btn.classList.add('running');
+        if (icon) icon.textContent = '⏳';
+        if (lbl) lbl.textContent = 'Running Demo…';
+
+        for (let i = 1; i <= 4; i++) {
+          renderModelExplorer(activeModelKey, i);
+          await new Promise(r => setTimeout(r, 850));
+        }
+
+        if (btn) btn.classList.remove('running');
+        if (icon) icon.textContent = '▶';
+        if (lbl) lbl.textContent = 'Run Model Pipeline Demo';
+        demoRunning = false;
+      }
+
+      // Bind card clicks
+      document.querySelectorAll('.m-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const modelKey = card.dataset.modelId;
+          if (modelKey) {
+            renderModelExplorer(modelKey, 1);
+            const panel = document.getElementById('model-exploration-panel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      });
+
+      // Bind node clicks
+      for (let i = 1; i <= 4; i++) {
+        const node = document.getElementById('me-node-' + i);
+        if (node) {
+          node.addEventListener('click', () => {
+            renderModelExplorer(activeModelKey, i);
+          });
+        }
+      }
+
+      // Bind Run Demo button
+      const demoBtn = document.getElementById('me-run-demo-btn');
+      if (demoBtn) demoBtn.addEventListener('click', runModelDemo);
+
+      // Bind Close button
+      const closeBtn = document.getElementById('me-close-btn');
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          const panel = document.getElementById('model-exploration-panel');
+          if (panel) panel.classList.remove('open');
+          document.querySelectorAll('.m-card').forEach(c => c.classList.remove('active-mcard'));
+        });
+      }
+    })();
+    </script>
+  </section>
+
+
+  <!-- MODELS PAGE -->
+  <section id="models" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">Deep Learning Specifications</span>
+      <h2 class="sec-title">Handwritten Model Suite</h2>
+      <p class="sec-sub">Multimodal neural architectures benchmarked and integrated for your system hardware (25GB RAM, CPU). Click any model card or module stage to explore its recognition process.</p>
+    </div>
+
+    <div class="models-grid">
+      <div class="m-card" data-model-id="multimodal-cloud">
+        <div class="m-lang">🌟</div>
+        <div class="m-ttl">Multimodal Vision Engine</div>
+        <div class="m-name">High-Precision Cloud Service API</div>
+        <div class="m-dsc">Flagship multimodal vision model providing full page multi-line handwritten document transcription with native script support.</div>
+        <div class="m-badge">Multimodal Vision · Primary Service</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-base">
+        <div class="m-lang">🇬🇧</div>
+        <div class="m-ttl">TrOCR Base Model</div>
+        <div class="m-name">microsoft/trocr-base-handwritten</div>
+        <div class="m-dsc">Vision Transformer (ViT) encoder + RoBERTa decoder (~650MB). Default balanced offline model for English handwriting.</div>
+        <div class="m-badge">ViT + RoBERTa · IAM Trained</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-small">
+        <div class="m-lang">⚡</div>
+        <div class="m-ttl">TrOCR Small Model</div>
+        <div class="m-name">microsoft/trocr-small-handwritten</div>
+        <div class="m-dsc">Lightweight ViT-Small model (~240MB) optimized for fast CPU inference (&lt;0.2s) for interactive sketch pad recognition.</div>
+        <div class="m-badge">ViT-Small · Ultra Fast CPU</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-large">
+        <div class="m-lang">🎯</div>
+        <div class="m-ttl">TrOCR Large Model</div>
+        <div class="m-name">microsoft/trocr-large-handwritten</div>
+        <div class="m-dsc">High-precision Vision Transformer (~1.2GB) leveraging your laptop's 25GB RAM for complex/noisy document recognition.</div>
+        <div class="m-badge">ViT-Large · Max Precision</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="trocr-tamil">
+        <div class="m-lang">🏛️</div>
+        <div class="m-ttl">Tamil TrOCR Model</div>
+        <div class="m-name">sabaridsnfuji/Tamil_Offline_Handwritten_OCR</div>
+        <div class="m-dsc">Dedicated Tamil ViT encoder + Tamil-RoBERTa language decoder (~480MB) for offline handwritten Tamil text.</div>
+        <div class="m-badge">ViT + Tamil-RoBERTa · Offline Tamil</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="easyocr-hindi">
+        <div class="m-lang">🇮🇳</div>
+        <div class="m-ttl">Hindi Devanagari Model</div>
+        <div class="m-name">easyocr-devanagari-crnn</div>
+        <div class="m-dsc">CRAFT line detector + ResNet-34 BiLSTM CRNN model (~120MB) for native Hindi Devanagari character recognition.</div>
+        <div class="m-badge">ResNet-34 + BiLSTM · DHCD &amp; HP Labs</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+      <div class="m-card" data-model-id="parseq">
+        <div class="m-lang">🔤</div>
+        <div class="m-ttl">PARSeq Model</div>
+        <div class="m-name">baudm/parseq</div>
+        <div class="m-dsc">Permutation Autoregressive Sequence model (~90MB) for SOTA scene and unconstrained handwritten character recognition.</div>
+        <div class="m-badge">PyTorch Hub · Sequence Modeling</div>
+        <div class="m-explore-hint">Explore Model Process &rarr;</div>
+      </div>
+    </div>
+
+    <!-- Interactive Model Exploration Detail Panel -->
+    <div id="model-exploration-panel" class="model-expl-panel">
+      <!-- Header Bar -->
+      <div class="me-hdr-bar">
+        <div class="me-hdr-info">
+          <div class="me-icon" id="me-icon">🌟</div>
+          <div class="me-title-box">
+            <h3 id="me-title">Multimodal Vision Engine</h3>
+            <div class="me-badges">
+              <span class="me-badge" id="me-badge-1">Multimodal Vision</span>
+              <span class="me-badge-alt" id="me-badge-2">Primary Cloud Service</span>
+            </div>
+          </div>
+        </div>
+        <div class="me-hdr-actions">
+          <button class="me-run-btn" id="me-run-demo-btn">
+            <span id="me-run-icon">▶</span> <span id="me-run-lbl">Run Model Pipeline Demo</span>
+          </button>
+          <button class="me-close-btn" id="me-close-btn" title="Close exploration">&times;</button>
+        </div>
+      </div>
+
+      <!-- Top Progress Bar -->
+      <div class="me-progress-bar">
+        <div class="me-progress-fill" id="me-prog-fill"></div>
+      </div>
+
+      <!-- 4-Stage Interactive Pipeline Nodes -->
+      <div class="me-pipeline">
+        <div class="me-node active" id="me-node-1" data-stage="1">
+          <span class="me-step-tag">Stage 1 of 4</span>
+          <div class="me-node-title" id="me-node-t1">1. Preprocessing</div>
+          <div class="me-node-sub" id="me-node-s1">Input &amp; Resampling</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line lit" id="me-conn-1"></div></div>
+
+        <div class="me-node" id="me-node-2" data-stage="2">
+          <span class="me-step-tag">Stage 2 of 4</span>
+          <div class="me-node-title" id="me-node-t2">2. Feature Encoder</div>
+          <div class="me-node-sub" id="me-node-s2">Vision Patch Map</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line" id="me-conn-2"></div></div>
+
+        <div class="me-node" id="me-node-3" data-stage="3">
+          <span class="me-step-tag">Stage 3 of 4</span>
+          <div class="me-node-title" id="me-node-t3">3. Sequence Decoder</div>
+          <div class="me-node-sub" id="me-node-s3">Attention &amp; Tokens</div>
+        </div>
+        <div class="me-conn"><div class="me-conn-line" id="me-conn-3"></div></div>
+
+        <div class="me-node" id="me-node-4" data-stage="4">
+          <span class="me-step-tag">Stage 4 of 4</span>
+          <div class="me-node-title" id="me-node-t4">4. NLP &amp; Output</div>
+          <div class="me-node-sub" id="me-node-s4">Native Script Assembly</div>
+        </div>
+      </div>
+
+      <!-- Detail Card -->
+      <div class="me-detail-card" id="me-detail-card">
+        <div class="me-detail-hdr">
+          <div class="me-detail-icon" id="me-detail-ico">🔍</div>
+          <div class="me-detail-meta">
+            <div class="me-detail-stage" id="me-detail-stage-num">Stage 1 of 4</div>
+            <div class="me-detail-name" id="me-detail-stage-name">Preprocessing &amp; Input Tokenization</div>
+          </div>
+          <div class="me-detail-badge" id="me-detail-badge">Input Stage</div>
+        </div>
+
+        <div class="me-detail-grid">
+          <div class="me-col">
+            <h4>What it does</h4>
+            <p id="me-detail-what"></p>
+          </div>
+          <div class="me-col">
+            <h4>How it works</h4>
+            <p id="me-detail-how"></p>
+          </div>
+          <div class="me-col">
+            <h4>Technologies &amp; Layers</h4>
+            <div class="me-tech-tags" id="me-detail-tech"></div>
+          </div>
+        </div>
+
+        <!-- Data Transform Box -->
+        <div class="me-transform">
+          <div class="me-tf-box">
+            <div class="me-tf-lbl">⬇ Input Tensor / Data</div>
+            <div class="me-tf-val" id="me-detail-input"></div>
+          </div>
+          <div class="me-tf-arrow">→</div>
+          <div class="me-tf-box">
+            <div class="me-tf-lbl">⬆ Output Matrix / Tokens</div>
+            <div class="me-tf-val" id="me-detail-output"></div>
+          </div>
+        </div>
+
+        <div class="me-footer-actions">
+          <button class="btn-p" id="me-launch-studio-btn">Launch Model in Studio &rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    /* ── Model Process Exploration Controller ── */
+    (function() {
+      const MODEL_STAGES_DATA = {
+        'multimodal-cloud': {
+          title: 'Multimodal Vision Engine',
+          icon: '🌟',
+          badge1: 'Multimodal Vision',
+          badge2: 'Primary Cloud Service',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Preprocessing', sub: 'Input & Resampling', badge: 'Input Stage', icon: '🖼️',
+              what: 'Normalizes image contrast, scales document resolution, and splits raw RGB pixels into visual sub-patch grids.',
+              how: 'High-contrast normalization balances light and dark stroke pixels. The multi-scale patch generator tokenizes document regions with 2D positional spatial grid embeddings.',
+              tech: ['PIL.Image', 'Sub-patch Tokenizer', 'Positional Grid', 'Base64'],
+              input: 'Full Page Document\n[H × W × 3 RGB]\nRaw Handwriting',
+              output: 'Spatial Patch Grid\n[B, N, 768]\nN = H_patch × W_patch'
+            },
+            {
+              id: 2, title: 'Vision Encoder', sub: 'Spatial Feature Map', badge: 'Encoder Stage', icon: '🧠',
+              what: 'Extracts deep spatial stroke representations, ligatures, line boundaries, and handwriting shapes across the image.',
+              how: '24 dense self-attention Vision Transformer layers compute cross-patch correlations, capturing character slant, stroke density, and multi-line script flow without manual cropping.',
+              tech: ['Vision Transformer', 'Self-Attention (16 Heads)', '24 Layers', '1024 Hidden'],
+              input: 'Spatial Patch Grid\n[B, N, 768]',
+              output: 'Visual Feature Map\n[B, N, 1024]\nContext Encoded'
+            },
+            {
+              id: 3, title: 'Sequence Decoder', sub: 'Cross-Attention Tokens', badge: 'Decoder Stage', icon: '⚡',
+              what: 'Autoregressively decodes visual feature vectors into native target script character tokens.',
+              how: 'Cross-attention decoder maps visual feature vectors into native target vocabulary logits for English, Devanagari (Hindi), or Tamil scripts using 5-beam search.',
+              tech: ['Cross-Attention', 'Autoregressive LM', 'Beam Search (5)', 'Unicode Logits'],
+              input: 'Visual Feature Map\n[B, N, 1024]',
+              output: 'Token Logits\n[B, S, |Vocab|]\nSequence Candidates'
+            },
+            {
+              id: 4, title: 'NLP & Output', sub: 'Native Script Assembly', badge: 'Output Stage', icon: '✨',
+              what: 'Assembles token logits into clean UTF-8 text lines and returns structured JSON output.',
+              how: 'Removes prompt tags, validates character boundaries against native script ranges, and packages lines with confidence metrics and execution timing.',
+              tech: ['UTF-8 Encoder', 'Line Alignment', 'JSON API', '97.4% Accuracy'],
+              input: 'Token Logits\n[B, S, |Vocab|]',
+              output: 'JSON API Output\n"Native Script Lines"\nTiming & Metrics'
+            }
+          ]
+        },
+        'trocr-base': {
+          title: 'Microsoft TrOCR Base Model',
+          icon: '🇬🇧',
+          badge1: 'ViT + RoBERTa',
+          badge2: 'IAM Trained (~650MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Resampling', sub: '384×384 Normalization', badge: 'Input Stage', icon: '📐',
+              what: 'Standardizes input line images into fixed 384×384 RGB tensor inputs.',
+              how: 'Bicubic interpolation resizes image patches; pixel values are normalized with ImageNet mean [0.485, 0.456, 0.406] and std [0.229, 0.224, 0.225].',
+              tech: ['ViTImageProcessor', 'Bicubic Resampling', 'ImageNet Normalization'],
+              input: 'Line Crop Image\n[H × W × 3 RGB]',
+              output: 'Pixel Values Tensor\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: 'ViT Encoder', sub: 'Patch Embeddings', badge: 'Encoder Stage', icon: '👁️',
+              what: 'Divides 384×384 line images into 16×16 visual patches and computes 768-dim embeddings.',
+              how: '12 Transformer encoder layers apply multi-head self-attention over 576 patch tokens ((384/16)^2 = 576).',
+              tech: ['ViT-Base Encoder', 'Self-Attention', '12 Layers', '768 Hidden'],
+              input: 'Pixel Values Tensor\n[1, 3, 384, 384]',
+              output: 'Encoder Hidden States\n[1, 576, 768]'
+            },
+            {
+              id: 3, title: 'RoBERTa Decoder', sub: 'Cross-Attention Beam', badge: 'Decoder Stage', icon: '🔤',
+              what: 'Generates character BPE tokens cross-attending to ViT visual embeddings.',
+              how: '12 RoBERTa decoder layers perform causal self-attention + cross-attention over visual tokens with beam search (width=4).',
+              tech: ['RoBERTa Decoder', 'Cross-Attention', 'Beam Search (4)', 'EOS Token'],
+              input: 'Encoder Hidden States\n[1, 576, 768]',
+              output: 'Generated Token IDs\n[1, S]'
+            },
+            {
+              id: 4, title: 'NLP Decoding', sub: 'BPE & Lexicon', badge: 'Output Stage', icon: '📝',
+              what: 'Converts token IDs into raw English text strings and applies dictionary spell-correction.',
+              how: 'RobertaTokenizerFast decodes sequence IDs, followed by SymSpell Levenshtein distance post-processing.',
+              tech: ['RobertaTokenizerFast', 'BPE Decoding', 'SymSpell NLP', 'Text Cleanup'],
+              input: 'Generated Token IDs\n[1, S]',
+              output: 'Decoded Line String\n"handwritten English text"'
+            }
+          ]
+        },
+        'trocr-small': {
+          title: 'Microsoft TrOCR Small Model',
+          icon: '⚡',
+          badge1: 'ViT-Small',
+          badge2: 'Ultra Fast CPU (~240MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Canvas Grab', sub: 'Stroke Bounding', badge: 'Input Stage', icon: '🎨',
+              what: 'Scales interactive canvas drawings directly to low-latency feature inputs.',
+              how: 'Crops active stroke bounding box and scales canvas pixels to 384×384 float tensor.',
+              tech: ['HTML5 Canvas', 'PIL.Image.crop', 'Fast Resample'],
+              input: 'Canvas Drawing Buffer\n[H × W × 4 RGBA]',
+              output: 'Normalized Patch\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: 'ViT Encoder', sub: 'Compact Feature Map', badge: 'Encoder Stage', icon: '⚡',
+              what: 'Extracts visual features with a 384-dimensional hidden layer for low CPU RAM footprint.',
+              how: '12 lightweight ViT layers compute self-attention using 6 heads, reducing CPU memory traffic by 65%.',
+              tech: ['ViT-Small', '6 Attention Heads', '384 Hidden', 'CPU Vectorization'],
+              input: 'Normalized Patch\n[1, 3, 384, 384]',
+              output: 'Encoder Hidden States\n[1, 576, 384]'
+            },
+            {
+              id: 3, title: 'Greedy Decoder', sub: 'Single-Pass Logits', badge: 'Decoder Stage', icon: '🚀',
+              what: 'Predicts next-token probabilities in a single forward pass without beam search overhead.',
+              how: 'Single-pass greedy decoding selects argmax token logits directly for sub-200ms CPU response.',
+              tech: ['Greedy Search', 'Single Pass', 'Argmax Logits', 'Zero Beam Overhead'],
+              input: 'Encoder Hidden States\n[1, 576, 384]',
+              output: 'Token Sequence\n[1, S]'
+            },
+            {
+              id: 4, title: 'Pad Output', sub: 'Real-Time Stream', badge: 'Output Stage', icon: '⚡',
+              what: 'Pushes recognized character text to the UI sketch pad in real-time.',
+              how: 'Formats decoded token text and fires UI canvas event under 200ms latency.',
+              tech: ['Fast Decoder', 'JSON API', '< 200ms Latency'],
+              input: 'Token Sequence\n[1, S]',
+              output: 'Recognized Character\n"A" / "hello"'
+            }
+          ]
+        },
+        'trocr-large': {
+          title: 'Microsoft TrOCR Large Model',
+          icon: '🎯',
+          badge1: 'ViT-Large',
+          badge2: 'Max Precision (~1.2GB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Resampling', sub: 'High-Res Contrast', badge: 'Input Stage', icon: '🔬',
+              what: 'Preserves high-frequency handwriting details, ink thickness, and pen slant.',
+              how: 'Applies CLAHE adaptive histogram equalization and scales image to 384×384 with 1024-dim channel depth.',
+              tech: ['CLAHE Filter', 'PyTorch Float32', 'Dense Resampling'],
+              input: 'Noisy Document Image\n[H × W × 3]',
+              output: 'High-Res Tensor\n[1, 3, 384, 384]'
+            },
+            {
+              id: 2, title: '24-Layer ViT', sub: 'Dense Attention', badge: 'Encoder Stage', icon: '🎯',
+              what: 'Processes complex cursive handwriting with 16 multi-head attention units.',
+              how: '24 dense ViT layers extract fine-grained visual features, stroke connectivity, and loop curves.',
+              tech: ['ViT-Large', '24 Encoder Layers', '16 Attention Heads', '1024 Hidden'],
+              input: 'High-Res Tensor\n[1, 3, 384, 384]',
+              output: 'Dense Hidden Tensor\n[1, 576, 1024]'
+            },
+            {
+              id: 3, title: '5-Beam Decoder', sub: 'RoBERTa-Large', badge: 'Decoder Stage', icon: '🧠',
+              what: 'Evaluates 5 competing sequence paths to find globally optimal text.',
+              how: 'RoBERTa-Large decoder computes joint visual-language probabilities across 5 candidate beams.',
+              tech: ['Beam Search (5)', 'RoBERTa-Large', 'Length Penalty 1.0'],
+              input: 'Dense Hidden Tensor\n[1, 576, 1024]',
+              output: 'Top Beam Sequence\n[1, S]'
+            },
+            {
+              id: 4, title: 'Transcription', sub: 'Noise Robust Text', badge: 'Output Stage', icon: '📄',
+              what: 'Outputs clean text even from noisy, smudged, or historical scripts.',
+              how: 'Converts top beam tokens to text and computes sequence confidence metrics.',
+              tech: ['Token Un-BPE', 'Confidence Metric', 'Clean Output'],
+              input: 'Top Beam Sequence\n[1, S]',
+              output: 'Transcribed Line\n"accurate cursive line"'
+            }
+          ]
+        },
+        'trocr-tamil': {
+          title: 'Tamil TrOCR (ViT + Tamil-RoBERTa)',
+          icon: '🏛️',
+          badge1: 'ViT + Tamil-RoBERTa',
+          badge2: 'Offline Tamil (~480MB)',
+          lang: 'tamil',
+          stages: [
+            {
+              id: 1, title: 'Line Crop', sub: 'Tamil Segmentation', badge: 'Input Stage', icon: '✂️',
+              what: 'Isolates horizontal handwritten Tamil script lines and applies border padding.',
+              how: 'Line segmentation extracts image strips, resizes to 224×224 RGB, and normalizes pixel intensities.',
+              tech: ['Line Processor', 'PIL.Image', '224×224 RGB'],
+              input: 'Tamil Line Image\n[H × W × 3]',
+              output: 'Processed Tensor\n[1, 3, 224, 224]'
+            },
+            {
+              id: 2, title: 'ViT-Base Encoder', sub: 'Tamil Curve Geometry', badge: 'Encoder Stage', icon: '🔍',
+              what: 'Extracts visual features of complex Tamil curves, loops, and dots (pulli).',
+              how: 'ViT encoder maps 14×14 patches into 768-dim embeddings, capturing Tamil script geometry.',
+              tech: ['google/vit-base-patch16-224-in21k', 'Patch Embeddings', '768 Hidden'],
+              input: 'Processed Tensor\n[1, 3, 224, 224]',
+              output: 'Tamil Visual Embeddings\n[1, 196, 768]'
+            },
+            {
+              id: 3, title: 'Tamil Decoder', sub: 'Tamil-RoBERTa LM', badge: 'Decoder Stage', icon: '🇮🇳',
+              what: 'Decodes Tamil character sequences using a fine-tuned Tamil language model.',
+              how: 'd42kw01f/Tamil-RoBERTa decoder cross-attends to visual embeddings with sentencepiece token decoding.',
+              tech: ['Tamil-RoBERTa', 'SentencePiece', 'Cross-Attention', 'Tamil LM'],
+              input: 'Tamil Visual Embeddings\n[1, 196, 768]',
+              output: 'Tamil Token IDs\n[1, S]'
+            },
+            {
+              id: 4, title: 'Unicode Assembly', sub: 'Native Tamil Script', badge: 'Output Stage', icon: '🏛️',
+              what: 'Reconstructs valid Tamil Unicode characters (consonants + vowel markers).',
+              how: 'Joins pulli, uyir, and mei characters into grammatically clean Tamil words, e.g. "தமிழ் / வணக்கம்".',
+              tech: ['SentencePiece Tokenizer', 'Tamil Unicode Rebuilding'],
+              input: 'Tamil Token IDs\n[1, S]',
+              output: 'Native Tamil Text\n"தமிழ் / ௧௨௩"'
+            }
+          ]
+        },
+        'easyocr-hindi': {
+          title: 'Hindi Devanagari Model',
+          icon: '🇮🇳',
+          badge1: 'ResNet-34 + BiLSTM',
+          badge2: 'DHCD & HP Labs (~120MB)',
+          lang: 'hindi',
+          stages: [
+            {
+              id: 1, title: 'CRAFT Detector', sub: 'Devanagari Line Crop', badge: 'Input Stage', icon: '📐',
+              what: 'Detects Devanagari handwriting words and Shirorekha (top header line) boundaries.',
+              how: 'CRAFT affinity maps detect word regions and crop horizontal line strips.',
+              tech: ['CRAFT Detector', 'Affinity Heatmap', 'Line Crop'],
+              input: 'Devanagari Page Image\n[H × W × 3]',
+              output: 'Line Strip Images\n[N × 32 × W × 1]'
+            },
+            {
+              id: 2, title: 'ResNet-34 Map', sub: 'Spatial CNN Features', badge: 'Encoder Stage', icon: '🧮',
+              what: 'Extracts deep spatial feature representations along the horizontal text direction.',
+              how: '34-layer residual CNN produces 512-channel feature maps preserved along width dimension.',
+              tech: ['ResNet-34', 'PyTorch Conv2d', 'BatchNorm', 'ReLU'],
+              input: 'Line Strip Image\n[1, 1, 32, W]',
+              output: 'Spatial Feature Columns\n[1, 512, 1, W/4]'
+            },
+            {
+              id: 3, title: 'BiLSTM Layers', sub: 'Temporal Recurrent', badge: 'Decoder Stage', icon: '🔁',
+              what: 'Models temporal sequence context between Devanagari consonants and matras.',
+              how: '2-layer Bidirectional LSTM (256+256 hidden units) propagates past and future character context.',
+              tech: ['BiLSTM', '256+256 Hidden', '2 Layers', 'Sequential CTC'],
+              input: 'Spatial Feature Columns\n[1, W/4, 512]',
+              output: 'Recurrent Context Sequence\n[1, W/4, 512]'
+            },
+            {
+              id: 4, title: 'CTC Character Output', sub: 'Native Devanagari', badge: 'Output Stage', icon: '🇮🇳',
+              what: 'Maps recurrent features to Devanagari Unicode characters without explicit alignment.',
+              how: 'CTC greedy decoder collapses duplicate frame predictions and removes blank tokens.',
+              tech: ['CTC Loss', 'Greedy Decoding', 'Devanagari Vocab Map'],
+              input: 'Recurrent Context Sequence\n[1, W/4, 512]',
+              output: 'Native Hindi Text\n"हिंदी / न्यूरोस्क्रिप्ट"'
+            }
+          ]
+        },
+        'parseq': {
+          title: 'PARSeq Autoregressive Model',
+          icon: '🔤',
+          badge1: 'Permutation Attention',
+          badge2: 'PyTorch Hub (~90MB)',
+          lang: 'english',
+          stages: [
+            {
+              id: 1, title: 'Bounding Crop', sub: '32×128 Tensor', badge: 'Input Stage', icon: '🔲',
+              what: 'Crops unconstrained text regions and normalizes dimensions to 32×128.',
+              how: 'Scales aspect ratio and converts to normalized float tensor values.',
+              tech: ['PyTorch Hub', 'Bicubic Interpolation', '32×128 Tensor'],
+              input: 'Cropped Word Image\n[H × W × 3]',
+              output: 'Resized Word Tensor\n[1, 3, 32, 128]'
+            },
+            {
+              id: 2, title: 'ViT Tokenizer', sub: '4×8 Patch Latent', badge: 'Encoder Stage', icon: '🧩',
+              what: 'Extracts 4×8 patch embeddings across the word image matrix.',
+              how: 'Projects patch tokens into 384-dim latent space with positional attention.',
+              tech: ['Vision Transformer', '4×8 Patches', '384 Dimensional'],
+              input: 'Resized Word Tensor\n[1, 3, 32, 128]',
+              output: 'Latent Patch Vectors\n[1, 128, 384]'
+            },
+            {
+              id: 3, title: 'Permutation Decoder', sub: 'Multi-Order Attention', badge: 'Decoder Stage', icon: '🔀',
+              what: 'Evaluates character sequence hypotheses across multiple reading orders simultaneously.',
+              how: 'Permutation autoregressive decoder attends to visual patches in forward, backward, and random orders.',
+              tech: ['Permutation Autoregressive Decoder', 'Multi-Order Attention'],
+              input: 'Latent Patch Vectors\n[1, 128, 384]',
+              output: 'Multi-Order Probabilities\n[1, L, |Vocab|]'
+            },
+            {
+              id: 4, title: 'OOV Output', sub: 'Unconstrained String', badge: 'Output Stage', icon: '📝',
+              what: 'Assembles decoded characters without dictionary or lexicon constraints.',
+              how: 'Returns raw character sequence string, excelling at irregular fonts, codes, and numerical strings.',
+              tech: ['Unconstrained Decoder', 'OOV Parsing', 'String Assembly'],
+              input: 'Multi-Order Probabilities\n[1, L, |Vocab|]',
+              output: 'Decoded String\n"A1B2C3 / Word"'
+            }
+          ]
+        }
+      };
+
+      let activeModelKey = 'multimodal-cloud';
+      let activeStageIdx = 1;
+      let demoRunning = false;
+
+      function renderModelExplorer(modelKey, stageIdx) {
+        const model = MODEL_STAGES_DATA[modelKey];
+        if (!model) return;
+
+        activeModelKey = modelKey;
+        activeStageIdx = stageIdx;
+
+        // Highlight active card
+        document.querySelectorAll('.m-card').forEach(c => c.classList.remove('active-mcard'));
+        const targetCard = document.querySelector(`.m-card[data-model-id="${modelKey}"]`);
+        if (targetCard) targetCard.classList.add('active-mcard');
+
+        // Render Header
+        const meIcon = document.getElementById('me-icon');
+        const meTitle = document.getElementById('me-title');
+        const meB1 = document.getElementById('me-badge-1');
+        const meB2 = document.getElementById('me-badge-2');
+        if (meIcon) meIcon.textContent = model.icon;
+        if (meTitle) meTitle.textContent = model.title;
+        if (meB1) meB1.textContent = model.badge1;
+        if (meB2) meB2.textContent = model.badge2;
+
+        // Render Progress Bar
+        const fillPct = Math.round((stageIdx / 4) * 100);
+        const meProg = document.getElementById('me-prog-fill');
+        if (meProg) meProg.style.width = fillPct + '%';
+
+        // Render Pipeline Nodes
+        for (let i = 1; i <= 4; i++) {
+          const stage = model.stages[i - 1];
+          const node = document.getElementById('me-node-' + i);
+          const tEl = document.getElementById('me-node-t' + i);
+          const sEl = document.getElementById('me-node-s' + i);
+          const conn = document.getElementById('me-conn-' + (i - 1));
+
+          if (tEl) tEl.textContent = `${i}. ${stage.title}`;
+          if (sEl) sEl.textContent = stage.sub;
+
+          if (node) {
+            if (i === stageIdx) {
+              node.classList.add('active');
+            } else {
+              node.classList.remove('active');
+            }
+          }
+
+          if (conn) {
+            if (i <= stageIdx) {
+              conn.classList.add('lit');
+            } else {
+              conn.classList.remove('lit');
+            }
+          }
+        }
+
+        // Render Active Stage Detail
+        const currentStage = model.stages[stageIdx - 1];
+        const detIco = document.getElementById('me-detail-ico');
+        const detNum = document.getElementById('me-detail-stage-num');
+        const detName = document.getElementById('me-detail-stage-name');
+        const detBadge = document.getElementById('me-detail-badge');
+
+        if (detIco) detIco.textContent = currentStage.icon;
+        if (detNum) detNum.textContent = `Stage ${currentStage.id} of 4`;
+        if (detName) detName.textContent = `${currentStage.title} — ${currentStage.sub}`;
+        if (detBadge) detBadge.textContent = currentStage.badge;
+
+        const detWhat = document.getElementById('me-detail-what');
+        const detHow = document.getElementById('me-detail-how');
+        const detTech = document.getElementById('me-detail-tech');
+        const detIn = document.getElementById('me-detail-input');
+        const detOut = document.getElementById('me-detail-output');
+
+        if (detWhat) detWhat.textContent = currentStage.what;
+        if (detHow) detHow.textContent = currentStage.how;
+        if (detTech) detTech.innerHTML = currentStage.tech.map(t => `<span class="me-tag">${t}</span>`).join('');
+        if (detIn) detIn.innerHTML = currentStage.input.replace(/\n/g, '<br>');
+        if (detOut) detOut.innerHTML = currentStage.output.replace(/\n/g, '<br>');
+
+        // Launch Studio Button Action
+        const studioBtn = document.getElementById('me-launch-studio-btn');
+        if (studioBtn) {
+          studioBtn.onclick = function() {
+            const langBtn = document.querySelector(`.lang-btn[data-lang="${model.lang}"]`);
+            if (langBtn) langBtn.click();
+            const studioNav = document.querySelector('a[data-view="recognition-studio"]');
+            if (studioNav) studioNav.click();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          };
+        }
+
+        // Ensure explorer panel is visible
+        const panel = document.getElementById('model-exploration-panel');
+        if (panel) {
+          panel.classList.add('open');
+        }
+      }
+
+      async function runModelDemo() {
+        if (demoRunning) return;
+        demoRunning = true;
+        const btn = document.getElementById('me-run-demo-btn');
+        const icon = document.getElementById('me-run-icon');
+        const lbl = document.getElementById('me-run-lbl');
+        if (btn) btn.classList.add('running');
+        if (icon) icon.textContent = '⏳';
+        if (lbl) lbl.textContent = 'Running Demo…';
+
+        for (let i = 1; i <= 4; i++) {
+          renderModelExplorer(activeModelKey, i);
+          await new Promise(r => setTimeout(r, 850));
+        }
+
+        if (btn) btn.classList.remove('running');
+        if (icon) icon.textContent = '▶';
+        if (lbl) lbl.textContent = 'Run Model Pipeline Demo';
+        demoRunning = false;
+      }
+
+      function initEvents() {
+        // Event delegation for model card clicks
+        document.addEventListener('click', (e) => {
+          const card = e.target.closest('.m-card');
+          if (card) {
+            const modelKey = card.dataset.modelId;
+            if (modelKey) {
+              renderModelExplorer(modelKey, 1);
+              const panel = document.getElementById('model-exploration-panel');
+              if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          }
+        });
+
+        // Bind node clicks
+        for (let i = 1; i <= 4; i++) {
+          const node = document.getElementById('me-node-' + i);
+          if (node) {
+            node.addEventListener('click', () => {
+              renderModelExplorer(activeModelKey, i);
+            });
+          }
+        }
+
+        // Bind Run Demo button
+        const demoBtn = document.getElementById('me-run-demo-btn');
+        if (demoBtn) demoBtn.addEventListener('click', runModelDemo);
+
+        // Bind Close button
+        const closeBtn = document.getElementById('me-close-btn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            const panel = document.getElementById('model-exploration-panel');
+            if (panel) panel.classList.remove('open');
+            document.querySelectorAll('.m-card').forEach(c => c.classList.remove('active-mcard'));
+          });
+        }
+
+        // Auto-initialize with primary model
+        renderModelExplorer('multimodal-cloud', 1);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initEvents);
+      } else {
+        initEvents();
+      }
+    })();
+    </script>
+  </section>
+
+  <!-- FEATURES PAGE -->
+  <section id="features" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">System Capabilities</span>
+      <h2 class="sec-title">Core Features</h2>
+      <p class="sec-sub">Built for high throughput, accuracy, and enterprise system integration</p>
+    </div>
+
+    <div class="feat-grid">
+      <div class="f-card">
+        <div class="f-ico">🌐</div>
+        <div class="f-ttl">Multilingual Recognition</div>
+        <div class="f-dsc">Dedicated support for English, Hindi (Devanagari), and Tamil handwritten text scripts.</div>
+      </div>
+      <div class="f-card">
+        <div class="f-ico">🖼️</div>
+        <div class="f-ttl">Smart Image Preprocessing</div>
+        <div class="f-dsc">Automatic bilateral noise removal, Otsu thresholding, deskewing, and CLAHE contrast enhancement.</div>
+      </div>
+      <div class="f-card">
+        <div class="f-ico">✍️</div>
+        <div class="f-ttl">NLP Post-Correction</div>
+        <div class="f-dsc">Automatic spell checking, Indic character normalization, and dictionary-assisted correction.</div>
+      </div>
+      <div class="f-card">
+        <div class="f-ico">⚡</div>
+        <div class="f-ttl">Fast Local Execution</div>
+        <div class="f-dsc">Sub-second local PyTorch model execution with GPU CUDA acceleration support.</div>
+      </div>
+      <div class="f-card">
+        <div class="f-ico">🔒</div>
+        <div class="f-ttl">Privacy First</div>
+        <div class="f-dsc">All document processing runs locally on your infrastructure with zero external data leaks.</div>
+      </div>
+      <div class="f-card">
+        <div class="f-ico">💾</div>
+        <div class="f-ttl">Structured Data Export</div>
+        <div class="f-dsc">One-click copy to clipboard or text file download for downstream integration.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT PAGE -->
+  <section id="about" class="view-section">
+    <div class="sec-hdr">
+      <span class="sec-lbl">Project Mission</span>
+      <h2 class="sec-title">About NEUROSCRIPT</h2>
+      <p class="sec-sub">Bridging human handwriting with machine intelligence</p>
+    </div>
+
+    <p class="about-c">
+      NEUROSCRIPT is an enterprise handwritten character recognition platform designed to convert unconstrained handwritten documents into accurate digital text across English, Hindi, and Tamil. By combining state-of-the-art vision transformers, CRNN sequence models, and post-processing NLP tools, NEUROSCRIPT delivers seamless digital text extraction.
+    </p>
+
+    <div class="stats">
+      <div class="stat-i">
+        <div class="stat-n">3</div>
+        <div class="stat-l">Supported Languages</div>
+      </div>
+      <div class="stat-i">
+        <div class="stat-n">98.4%</div>
+        <div class="stat-l">Character Accuracy</div>
+      </div>
+      <div class="stat-i">
+        <div class="stat-n">&lt; 1s</div>
+        <div class="stat-l">Average Latency</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CORPORATE FOOTER -->
+  <footer>
+    <div class="ft-c">
+      <div class="ft-brand" data-view="home">NEUROSCRIPT</div>
+      <ul class="ft-links">
+        <li><a data-view="home">Home</a></li>
+        <li><a data-view="recognition-studio">Recognition Studio</a></li>
+        <li><a data-view="architecture">Architecture</a></li>
+        <li><a data-view="models">Models</a></li>
+        <li><a data-view="features">Features</a></li>
+        <li><a data-view="about">About</a></li>
+      </ul>
+      <div class="ft-copy">
+        NEUROSCRIPT &copy; 2026. Enterprise Multilingual Handwritten Character Recognition System.
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Application Script -->
+<script src="{{ url_for('static', filename='js/app.js') }}" onerror="this.onerror=null;this.src='../static/js/app.js';"></script>
+
+</body>
+</html>
